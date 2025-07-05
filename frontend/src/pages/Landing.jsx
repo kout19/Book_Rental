@@ -1,12 +1,18 @@
 import LandingHeader from '../components/layout/LandingHeader'
-import { Box, Typography } from '@mui/material'
 import HeroSection from '../components/common/HeroSection'
-
+import FeatureSection from '../components/common/FeatureSection'
+import FAQSection from '../components/common/FAQSection'
+import ContactSection from '../components/common/ContactSection'
+import LandingFooter from '../components/layout/LandignFooter'
 export default function Landing() {
   return (
     <>
       <LandingHeader />
       <HeroSection />
+      <FeatureSection />
+      <FAQSection />
+      <ContactSection />
+      <LandingFooter />
     </>
   )
 }
