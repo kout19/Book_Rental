@@ -39,11 +39,11 @@ export default function HeroSection() {
       </Box>
 
       {/* Image */}
-      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', borderRadius: 2, overflow: 'hidden' }}>
+      <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', borderRadius: 3, overflow: 'hidden' }}>
         <img
           src={heroImage}
           alt="Hero illustration"
-          style={{ maxWidth: '100%', height: 'auto' }}
+          style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: theme.shadows[3] }}
         />
       </Box>
     </Box>
