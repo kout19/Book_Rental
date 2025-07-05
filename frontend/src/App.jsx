@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import Landing from './pages/Landing'
 // import Login from './auth/Login'
 // import Register from './auth/Register'
 // import Dashboard from './pages/Dashboard'
@@ -7,18 +8,18 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 
 function App() {
   return (
-      <div>
-      <h1>Book Rental Application</h1>
-      <p>Welcome to the Book Rental Application!</p>
-  
-    {/* <Routes>
+    <div>
+    <Routes>
+  <Route path="/" element={<Landing />} />
+  {/*
        <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/books" element={<Books />} />
       <Route path="/admin" element={<AdminPanel />} />
       <Route path="*" element={<Navigate to="/login" replace />} /> 
-    </Routes> */}
+      */}
+    </Routes> 
     </div>
   )
 }
