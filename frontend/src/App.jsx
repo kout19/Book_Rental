@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Landing from './pages/Landing'
-// import Login from './auth/Login'
+import Login from './Auth/Login'
 // import Register from './auth/Register'
 // import Dashboard from './pages/Dashboard'
 // import Books from './pages/Books'
@@ -10,9 +10,9 @@ function App() {
   return (
     <div>
     <Routes>
-  <Route path="/" element={<Landing />} />
+   <Route path="/" element={<Landing />} />
+   <Route path="/login" element={<Login />} />
   {/*
-       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/books" element={<Books />} />
