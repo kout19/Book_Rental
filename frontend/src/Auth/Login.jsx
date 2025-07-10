@@ -14,8 +14,45 @@ import { loginSchema } from '../utils/validationSchema'
 import { useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import axios from 'axios'
-import { useAuth } from '../context/AuthContext'
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider, githubProvider } from '../firebase/firebase';
+import { useAuth } from '../context/AuthContext';
 
+const handleGoogleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const token = await user.getIdToken();
+    const userData = {
+      email: user.email,
+      name: user.displayName,
+      role: 'user', // Default role, adjust as needed
+      token: token,
+    };
+    console.log("Google login successful:", userData);
+  }catch (error) {
+    console.error("Google login failed:", error);
+    throw error; // Re-throw to handle in the calling function
+  }
+}
+const handleGithubLogin =async()=>{
+  try{
+    const result = await signInWithPopup(auth, githubProvider);
+    const user = result.user;
+    const token = await user.getIdToken();
+    const userData = {
+      email: user.email,
+      name: user.displayName,
+      role: 'user', // Default role, adjust as needed
+      token: token,
+    };
+    console.log("Github login successful:", userData);
+
+  }catch(error){
+    console.log("Github login failed:", error);
+    throw error; // Re-throw to handle in the calling function
+  }
+}
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -94,6 +131,29 @@ export default function Login() {
           </Link>
         </Typography>
       </Box>
+       <button onClick={handleGoogleLogin} type='button'
+         className="flex items-center justify-center gap-3 w-full max-w-sm px-4 py-2 border border-gray-300 rounded-md shadow-sm hover:shadow-md hover:bg-gray-50 transition duration-200">
+           <img
+           src="https://www.svgrepo.com/show/475656/google-color.svg"
+           alt="Google"
+           className="w-5 h-5"
+           />
+        <span className="text-sm font-medium text-gray-700">
+          Sign in with Google
+        </span>
+        </button>
+        <button onClick={handleGithubLogin} type='button'
+         className="flex items-center justify-center gap-3 w-full max-w-sm px-4 py-2 border border-gray-300 rounded-md shadow-sm hover:shadow-md hover:bg-gray-50 transition duration-200 mt-2">
+           <img   
+            src="https://cdn.simpleicons.org/github/000000"
+            alt="Github"
+            className="w-5 h-5"
+          />
+        <span className="text-sm font-medium text-gray-700">  
+          Sign in with Github
+        </span>
+        </button>
     </Container>
+    
   )
 }
