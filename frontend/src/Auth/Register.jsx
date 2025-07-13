@@ -6,9 +6,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema } from '../utils/validationSchema';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth'
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import {app} from '../firebase/firebase';
+import { ca } from 'zod/v4/locales';
 const auth = getAuth(app);
 const db = getFirestore(app);
 // Function to handle user registration
@@ -51,14 +52,56 @@ export default function Register() {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = async (data) => {
+  // Creating Rechaptcha verifier for phone number authentication
+const createRecaptchaVerifier = () => {
+window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+    'size': 'invisible',
+    'callback': (response) => {
+        // reCAPTCHA solved, allow signInWithPhoneNumber.
+        console.log("Recaptcha verified");
+    },
+    'expired-callback': () => {
+        // Response expired. Ask user to solve reCAPTCHA again.
+        console.log("Recaptcha expired");
+    }
+
+}, auth);
+return window.recaptchaVerifier;
+}
+// send verification code to phone number
+const sendVerificationCode = async (phoneNumber) => {
+  createRecaptchaVerifier();
+  try {
+    const appVerifier = window.recaptchaVerifier;
+    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+    window.confirmationResult = confirmationResult; // Store confirmation result for later use
+    console.log("Verification code sent to phone number:", phoneNumber);
+  } catch (error) {
+    console.error("Error sending verification code:", error);
+    throw error; // Re-throw to handle in the calling function
+  }
+};
+//verify the code sent to phone number
+const verifyCode = async (code) => {
+  try {
+    const result  = await window.confirmationResult.confirm(code);
+    const user = result.user;
+    console.log("Code verified successfully:", user);
+    return user; // Return user for further processing if needed
+  }catch (error) {
+    console.error("Error verifying code:", error);
+    throw error; // Re-throw to handle in the calling function
+  }
+};
+const onSubmit = async (data) => {
     try {
     const userData = await handleRegister(data);
     console.log('Form Data:', userData);
+    const verifUser = await verifyCode(data.phoneNumber);
+    console.log('Verification User:', verifUser);
     }catch (error) {
       console.error('Error submitting form:', error.message);
     }
-
     // Handle registration (e.g., Firebase or your backend API)
   };
 
@@ -76,6 +119,17 @@ export default function Register() {
             className="w-full border border-gray-300 px-3 py-2 rounded"
           />
           {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+        </div>
+        {/* Phone Number Field */}
+        <div>
+          <label className="block mb-1 font-medium">Phone Number</label>
+          <input
+            type="tel"
+            {...register('phone')}
+            placeholder="+251912345678" // Ethiopian example
+            className="w-full border border-gray-300 px-3 py-2 rounded"
+          />
+          {errors.phone && <p className="text-red-500 text-sm">{errors.phone.message}</p>}
         </div>
 
         {/* Email Field */}
@@ -125,6 +179,7 @@ export default function Register() {
           </Link>
         </Typography>
       </form>
+      <div id="recaptcha-container"></div>
     </div>
   );
 }
