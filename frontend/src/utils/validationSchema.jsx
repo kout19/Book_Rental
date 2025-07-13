@@ -6,6 +6,7 @@ export const loginSchema = z.object({
 export const registerSchema = z
   .object({
     name: z.string().min(3, 'Name must be at least 3 characters'),
+    phoneNumber: z.string().regex(/^\+?[0-9]{10,15}$/, 'Phone number must be a valid format'),
     email: z.string().email({ message: 'Invalid email' }),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters'),
