@@ -72,8 +72,9 @@ export default function Login() {
     setServerError(null)
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', data)
+      const res = await axios.post('http://localhost:5173/api/auth/login', data)
       const user = res.data.token;
+      console.log(user);
       login(user)
 
       if (user.role === 'admin') navigate('/admin/dashboard')
