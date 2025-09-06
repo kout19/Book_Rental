@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase/firebase";
+import { auth } from "../../firebase/firebase";
 import { onAuthStateChanged, reload } from "firebase/auth";
 
-export default function Dashboard() {
+export default function UserDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
