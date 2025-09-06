@@ -36,7 +36,7 @@ export default function Register() {
   });
 
   const handleRegister = async (data) => {
-    console.log("From data sumbited", data);
+    console.log("Form data sumbited", data);
     try {
       const res = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = res.user;

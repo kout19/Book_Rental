@@ -13,10 +13,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../utils/validationSchema'
 import { useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import axios from 'axios'
-import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider, githubProvider } from '../firebase/firebase';
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { auth,db, googleProvider, githubProvider } from '../firebase/firebase';
 import { useAuth } from '../context/AuthContext';
+import { getDoc, doc} from 'firebase/firestore'
 
 const handleGoogleLogin = async () => {
   try {
@@ -72,15 +72,28 @@ export default function Login() {
     setServerError(null)
 
     try {
-      const res = await axios.post('http://localhost:5173/api/auth/login', data)
-      const user = res.data.token;
-      console.log(user);
-      login(user)
-
-      if (user.role === 'admin') navigate('/admin/dashboard')
-      else if (user.role === 'owner') navigate('/owner/dashboard')
+      const res = await signInWithEmailAndPassword(auth, data.email, data.password  )
+      const user = res.user;
+      console.log("user",user);
+      if( !user.emailVerified){
+        alert("Please verify your email before logging in.")
+        return;
+      }
+      // login(user)
+      const userDoc=await getDoc(doc(db,'users',user.uid));
+      if(userDoc.exists()){
+        const userData=userDoc.data();
+        console.log("user Data:", userData);
+        login({uid:user.uid,...userData});
+      if (userData.role === 'admin') navigate('/admin/dashboard')
+      else if (userData.role === 'owner') navigate('/owner/dashboard')
       else navigate('/user/dashboard')
+      }
+      else{
+        setServerError('No user data found. Please contact support.') 
+      }  
     } catch (err) {
+      console.log(err.code, err.message)
       setServerError('Invalid email or password.')
     } finally {
       setLoading(false)
