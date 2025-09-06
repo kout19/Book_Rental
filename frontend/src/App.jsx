@@ -5,7 +5,7 @@ import Register from './Auth/Register'
 import EmailVerify from './pages/EmailVerify'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
-
+import UserDashboard from './pages/user/UserDashboard'
 function App() {
   return (
     <div>
@@ -14,6 +14,7 @@ function App() {
    <Route path="/login" element={<Login />} />
    <Route path="/register" element={<Register />} />
    <Route path="/verify-email" element={<EmailVerify />} />
+   <Route path="user/dashboard" element={<UserDashboard />} />
     {/* Admin routes */}
    <Route path="/admin/*" element={<AdminLayout />}>
         {/* Nested routes for admin */}
