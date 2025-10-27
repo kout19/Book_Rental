@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import Cookies from 'js-cookie'
 import * as jwt_decode from 'jwt-decode';
 
@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
     try {
       const decoded = jwt_decode(token)
       return decoded // example: { id, email, role, exp }
-    } catch (err) {
+    } catch {
       return null
     }
   })
@@ -44,6 +44,7 @@ export function AuthProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

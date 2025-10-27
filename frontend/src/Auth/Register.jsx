@@ -41,8 +41,11 @@ export default function Register() {
       const res = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = res.user;
 
-      // Send email verification
-      await sendEmailVerification(user);
+      // Send email verification with custom action code settings
+      await sendEmailVerification(user, {
+        url: `${window.location.origin}/verify-email`,
+        handleCodeInApp: true
+      });
 
       // Save user in Firestore
       await setDoc(doc(db, 'users', user.uid), {
@@ -50,10 +53,11 @@ export default function Register() {
         email: data.email,
         role: 'user',
         createdAt: serverTimestamp(),
+        emailVerified: false
       });
 
-      alert('Registration successful! Check your email to verify your account.');
-      navigate('/login');
+      alert('Registration successful! Check your email (including spam folder) to verify your account.');
+      navigate('/verify-email');
     } catch (err) {
       console.error('Registration error:', err);
       setError('Failed to register. Try again.');

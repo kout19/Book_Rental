@@ -1,8 +1,14 @@
 import express from 'express';
-import { addBook, borrowBook, returnBook} from '../controllers/bookController.js';
+import {importBooks, addBook, borrowBook, returnBook, getBooks, getBookById} from '../controllers/bookController.js';
 import {protect} from '../middleware/authMiddleware.js';
 const router= express.Router();
-router.post('/add', protect, addBook);
+
+// Public routes (no authentication required for browsing)
+router.get('/', getBooks);
+router.get('/:id', getBookById);
+
+// Protected routes (authentication required)
+router.post("/import", importBooks);
 router.post('/borrow/:bookId', protect, borrowBook);
 router.post('/return/:bookId', protect, returnBook);
 

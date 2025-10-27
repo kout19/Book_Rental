@@ -26,7 +26,7 @@ const handleGoogleLogin = async () => {
     const userData = {
       email: user.email,
       name: user.displayName,
-      role: 'user', // Default role, adjust as needed
+      role: 'user', 
       token: token,
     };
     console.log("Google login successful:", userData);
@@ -43,11 +43,10 @@ const handleGithubLogin =async()=>{
     const userData = {
       email: user.email,
       name: user.displayName,
-      role: 'user', // Default role, adjust as needed
+      role: 'user', 
       token: token,
     };
     console.log("Github login successful:", userData);
-
   }catch(error){
     console.log("Github login failed:", error);
     throw error; // Re-throw to handle in the calling function
@@ -58,7 +57,6 @@ export default function Login() {
   const { login } = useAuth();
   const [serverError, setServerError] = useState(null)
   const [loading, setLoading] = useState(false)
-
   const {
     register,
     handleSubmit,

@@ -3,12 +3,12 @@ const bookSchema = new mongoose.Schema({
     title: {
         type: String,
         required: true,
-        Trim: true
+        trim: true
     },
     author: {
         type: String,
         required: true,
-        Trim: true
+        trim: true
     },
     description: {
         type: String,
@@ -17,7 +17,7 @@ const bookSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        Trim: true
+        trim: true
     },
     ISBN: {
         type: String,
@@ -26,6 +26,15 @@ const bookSchema = new mongoose.Schema({
     },
     publishedYear: {
         type: Number,
+    },
+    rentPrice: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    image: {
+        type: String,
+        default: null
     },
     owner:{
         type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +50,10 @@ const bookSchema = new mongoose.Schema({
         type: String,
         enum: ['available', 'rented', 'reserved'],  
         default: 'available'
+    },
+    available:{
+        type:Boolean,
+        default: true
     },
     createdAt: {
         type: Date,

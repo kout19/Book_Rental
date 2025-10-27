@@ -1,5 +1,29 @@
-import adminRoutes from './routes/adminRoutes';
-import bookRoutes from './routes/bookRoutes';
-app.use('/api/admin', adminRoutes);
-app.use('/api/books', bookRoutes);
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import connectDB from './config/db.js';
+import adminRoutes from './routes/adminRoutes.js';
+import bookRoutes from './routes/bookRoutes.js';
+
+dotenv.config();
+
+// Connect to MongoDB
+connectDB();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Routes
+app.use("/api/admin", adminRoutes);
+app.use("/api/books", bookRoutes);
+
+// Port from .env or default 5000
+const PORT = process.env.PORT || 5173;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 export default app;
