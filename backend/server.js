@@ -15,13 +15,14 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/books", bookRoutes);
 
 // Port from .env or default 5000
-const PORT = process.env.PORT || 5173;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

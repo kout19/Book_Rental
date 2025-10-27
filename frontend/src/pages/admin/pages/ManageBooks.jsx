@@ -71,12 +71,20 @@ export default function AdminImportBooks() {
   const importBooks = async (booksToImport) => {
     setImporting(true);
     try {
-      const res = await API.post("/books/import", { books: booksToImport });
+      // console.log("Import payload:", booksToImport);
+      const res = await API.post(`/api/books/import`, { books: booksToImport });
+      console.log("saved books", res.data.savedBooks);
       alert(`✅ ${res.data.savedBooks.length} books imported successfully!`);
       setSelectedBooks([]);
     } catch (error) {
       console.error("Error importing books:", error);
-      alert("❌ Failed to import books.");
+      // Show server-provided message when available
+      const serverMsg = error?.response?.data?.error || error?.response?.data?.message;
+      if (serverMsg) {
+        alert(`❌ Failed to import books: ${serverMsg}`);
+      } else {
+        alert("❌ Failed to import books. See console for details.");
+      }
     } finally {
       setImporting(false);
     }

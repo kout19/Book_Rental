@@ -1,7 +1,8 @@
 // src/api/api.js
 import axios from "axios";
 
-export const API_URL = import.meta.env.VITE_API_BASE_URL;
+// Prefer environment-provided API base URL, otherwise fall back to local backend.
+export const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 const API = axios.create({
   baseURL: API_URL,

@@ -4,8 +4,9 @@ import fetch from "node-fetch";
 
 export const importBooks = async (req, res) => {
   try {
+     console.log("Request body received:", req.body);
     const { books } = req.body;
-
+    
     // 🧠 You can later replace this with your logged-in admin ID
     const adminUser = await User.findOne(); 
     if (!adminUser) {
@@ -14,16 +15,17 @@ export const importBooks = async (req, res) => {
 
     const currentYear = new Date().getFullYear();
 
-    const booksToSave = books.map((doc) => {
+    const booksToSave = books.map((doc, index) => {
       const year = parseInt(doc.publish_year?.[0]) || currentYear;
       const age = currentYear - year;
       const price = age < 5 ? 20 : age < 20 ? 15 : 10;
+      const isbn = doc.isbn || `NO-ISBN-${Date.now()}-${index}`;
 
       return {
         title: doc.title || "Untitled",
         author: doc.author || "Unknown",
         category: doc.category || "Imported",
-        ISBN: doc.isbn || "",
+        ISBN: doc.isbn || isbn,
         publishedYear: year,
         image: doc.cover || null,
         rentPrice: price,
