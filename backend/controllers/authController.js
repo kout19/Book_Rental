@@ -5,15 +5,29 @@ import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
-// Initialize firebase-admin if environment variables are present
-if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
+// Initialize firebase-admin preferring a local service account JSON file to avoid PEM issues
+if (!admin.apps.length) {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const svcPath = path.join(__dirname, '../config/serviceAccountKey.json');
+    if (fs.existsSync(svcPath)) {
+      const serviceAccount = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    } else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+      });
+    }
+  } catch (e) {
+    console.error('Failed to initialize firebase-admin in authController:', e?.message || e);
+  }
 }
 
 // POST /api/auth/sync
@@ -21,18 +35,30 @@ if (!admin.apps.length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBAS
 // ensures a corresponding Mongo User exists (creates it if missing). Returns the user.
 export const syncUser = async (req, res) => {
   try {
-    if (!admin.apps.length) {
+    // We prefer server-side Firebase verification, but allow a dev fallback when
+    // SKIP_FIREBASE_VERIFY=true is set in .env so you can omit Firebase admin creds locally.
+    let uid;
+    let decoded;
+    if (admin.apps.length) {
+      // Expect Authorization: Bearer <firebaseIdToken>
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.split(' ')[1];
+      if (!token) return res.status(400).json({ message: 'Missing Firebase ID token in Authorization header.' });
+
+      decoded = await admin.auth().verifyIdToken(token);
+      uid = decoded.uid;
+      if (!uid) return res.status(400).json({ message: 'Invalid Firebase token.' });
+    } else if (process.env.SKIP_FIREBASE_VERIFY === 'true') {
+      // DEV fallback: allow sync without verifying Firebase token. The client should
+      // POST { uid?, name?, email?, role? } in the request body. If uid not provided
+      // we generate a dev uid. This is intentionally permissive and should only be
+      // used during local development.
+      uid = req.body?.uid || `dev-${Date.now()}`;
+      console.warn('Firebase admin not configured. Using SKIP_FIREBASE_VERIFY dev fallback to create/sync user for uid=', uid);
+      decoded = { uid };
+    } else {
       return res.status(500).json({ message: 'Firebase admin not configured on server.' });
     }
-
-    // Expect Authorization: Bearer <firebaseIdToken>
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.split(' ')[1];
-    if (!token) return res.status(400).json({ message: 'Missing Firebase ID token in Authorization header.' });
-
-    const decoded = await admin.auth().verifyIdToken(token);
-    const uid = decoded.uid;
-    if (!uid) return res.status(400).json({ message: 'Invalid Firebase token.' });
 
     const { name, email, role } = req.body || {};
 
@@ -66,4 +92,18 @@ export const syncUser = async (req, res) => {
   }
 };
 
-export default { syncUser };
+// Protected debug endpoint: returns the current authenticated user's basic info
+export const whoami = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+    // req.user may be a Mongoose doc; normalize id
+    const id = req.user._id ? req.user._id.toString() : req.user.id || null;
+    res.status(200).json({ id, email: req.user.email, role: req.user.role });
+  } catch (err) {
+    console.error('Error in whoami:', err && (err.stack || err.message || err));
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// include whoami in default export as well for compatibility
+export default { syncUser, whoami };

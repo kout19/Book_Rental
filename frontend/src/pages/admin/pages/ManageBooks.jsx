@@ -20,11 +20,15 @@ export default function AdminImportBooks() {
     setLoading(true);
 
     try {
-      const res = await API.get(
-        `https://openlibrary.org/search.json?q=${query}&page=${page}&limit=${limit}`
-      );
-      setNumFound(res.data.numFound);
-      const formatted = res.data.docs.map((doc) => ({
+      // Use a direct fetch to Open Library so we don't send our app Authorization
+      // header (attached by the shared API instance). Sending Authorization
+      // triggers a CORS preflight which Open Library doesn't accept.
+      const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Open Library request failed: ${r.status}`);
+      const data = await r.json();
+      setNumFound(data.numFound);
+      const formatted = data.docs.map((doc) => ({
         key: doc.key,
         title: doc.title,
         author: doc.author_name?.[0] || "Unknown",

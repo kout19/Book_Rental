@@ -7,6 +7,9 @@ import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageUsers from './pages/admin/pages/Manageusers'
 import ManageBooks from './pages/admin/pages/ManageBooks'
+import AdminProfile from './pages/admin/pages/AdminProfile'
+import AdminSettings from './pages/admin/pages/AdminSettings'
+import RequireAuth from './routes/ProtectedRoute'
 import UserNavbar from './pages/user/layout/UserNavbar'
 import UserDashboard from './pages/user/UserDashboard'
 import BrowseBooks from './pages/user/pages/BrowseBooks'
@@ -34,6 +37,8 @@ function App() {
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<ManageUsers />} />
         <Route path="books" element={<ManageBooks />} />
+    <Route path="profile" element={<RequireAuth><AdminProfile/></RequireAuth>} />
+    <Route path="settings" element={<RequireAuth><AdminSettings/></RequireAuth>} />
     </Route>
  
   </Routes> 

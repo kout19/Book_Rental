@@ -90,14 +90,20 @@ export const getCategories = async (req, res) => {
 // Get rentals for the authenticated user
 export const getMyRentals = async (req, res) => {
     try {
+        if (!req.user) {
+            console.warn('getMyRentals: no req.user present');
+            return res.status(401).json({ message: 'Not authenticated' });
+        }
         const renterId = req.user.id;
+        console.debug('getMyRentals: renterId=', renterId);
         const rentals = await Book.find({ rentedBy: renterId })
             .populate('owner', 'name email')
             .populate('rentedBy', 'name email')
             .select('-__v');
+        console.debug('getMyRentals: found', rentals.length, 'rentals for', renterId);
         res.status(200).json(rentals);
     } catch (error) {
-        console.error('Error fetching my rentals:', error);
+        console.error('Error fetching my rentals:', error && (error.stack || error.message || error));
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -156,7 +162,9 @@ export const borrowBook = async (req, res) => {
         book.rentedBy = renterId;
         book.status = "rented";
         await book.save();
+        console.debug('borrowBook: book', bookId, 'rentedBy set to', renterId);
         await User.findByIdAndUpdate(renterId, { $push: { rentedBooks: book._id } });
+        console.debug('borrowBook: user', renterId, 'rentedBooks updated with', book._id);
         res.status(200).json({message: "Book borrowed successfully", book });
     }catch (error){
         console.error("Error borrowing book:", error);

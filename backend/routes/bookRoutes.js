@@ -6,12 +6,16 @@ const router = express.Router();
 // Public routes (no authentication required for browsing)
 router.get('/', getBooks);
 router.get('/categories', getCategories);
-router.get('/:id', getBookById);
 
 // Protected routes (authentication required)
 router.post('/import', protect, importBooks);
 router.post('/borrow/:bookId', protect, borrowBook);
 router.post('/return/:bookId', protect, returnBook);
 router.get('/my-rentals', protect, getMyRentals);
+
+// NOTE: Keep the ':id' route LAST so it doesn't accidentally match other literal paths
+// like '/my-rentals' — Express matches routes in order and '/:id' will greedily
+// match any single path segment.
+router.get('/:id', getBookById);
 
 export default router;
