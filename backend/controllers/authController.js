@@ -97,8 +97,8 @@ export const whoami = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
     // req.user may be a Mongoose doc; normalize id
-    const id = req.user._id ? req.user._id.toString() : req.user.id || null;
-    res.status(200).json({ id, email: req.user.email, role: req.user.role });
+  const id = req.user._id ? req.user._id.toString() : req.user.id || null;
+  res.status(200).json({ id, name: req.user.name, email: req.user.email, role: req.user.role, wallet: req.user.wallet || 0, isApproved: req.user.isApproved || false, approvalRequested: req.user.approvalRequested || false });
   } catch (err) {
     console.error('Error in whoami:', err && (err.stack || err.message || err));
     res.status(500).json({ message: 'Server error' });

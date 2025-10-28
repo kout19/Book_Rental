@@ -45,6 +45,21 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Book'
     }], 
+    // Wallet balance for owners (in simple number currency unit)
+    wallet: {
+        type: Number,
+        default: 0
+    },
+    // Whether the owner account has been approved by a system admin
+    isApproved: {
+        type: Boolean,
+        default: false
+    },
+    // Whether the owner has requested approval from an admin
+    approvalRequested: {
+        type: Boolean,
+        default: false
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 

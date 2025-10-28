@@ -8,6 +8,35 @@ export const getUsers = async (req, res) => {
         res.status(500).json({message: "Failed to fetch users", error: error.message});
   }
 };
+
+// Approve or reject an owner-uploaded book
+export const approveBook = async (req, res) => {
+    try {
+        const { id } = req.params; // book id
+        const { approved } = req.body; // boolean
+        const Book = (await import('../models/BookSchema.js')).default;
+        const book = await Book.findById(id);
+        if (!book) return res.status(404).json({ message: 'Book not found' });
+        book.approved = !!approved;
+        await book.save();
+        res.status(200).json({ message: `Book ${approved ? 'approved' : 'unapproved'}`, book });
+    } catch (error) {
+        console.error('Error approving book:', error);
+        res.status(500).json({ message: 'Failed to set book approval', error: error.message });
+    }
+};
+
+// Admin endpoint to list unapproved owner uploads
+export const listUnapprovedBooks = async (req, res) => {
+    try {
+        const Book = (await import('../models/BookSchema.js')).default;
+        const books = await Book.find({ approved: false }).populate('owner', 'name email');
+        res.status(200).json(books);
+    } catch (error) {
+        console.error('Error listing unapproved books:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 export const updateUserRole= async (req, res) => {
     try{
         const {id} = req.params;
@@ -48,3 +77,20 @@ export const deleteUser = async (req, res) => {
         res.status(500).json({message: "Failed to delete user", error: error.message});
     }
 }
+// Approve or unapprove an owner account
+export const approveOwner = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { approved } = req.body;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        user.isApproved = !!approved;
+        // if approving, clear approvalRequested flag
+        if (approved) user.approvalRequested = false;
+        await user.save();
+        res.status(200).json({ message: `User ${approved ? 'approved' : 'unapproved'}`, user });
+    } catch (error) {
+        console.error('Error approving user:', error);
+        res.status(500).json({ message: 'Failed to set user approval', error: error.message });
+    }
+};

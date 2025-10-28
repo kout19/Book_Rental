@@ -5,6 +5,7 @@ const adminMenu = [
   { label: 'Dashboard', path: '/admin/dashboard' },
   { label: 'Manage Users', path: '/admin/users' },
   { label: 'Manage Books', path: '/admin/books' },
+  { label: 'Owner Uploads', path: '/admin/owner-uploads' },
 ]
 
 export default function AdminSidebar() {

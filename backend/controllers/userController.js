@@ -31,4 +31,28 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
+// Owner requests approval from admin
+export const requestApproval = async (req, res) => {
+  try {
+    const requesterId = req.user?.id;
+    if (!requesterId) return res.status(401).json({ message: 'Not authenticated' });
+
+    const user = await User.findById(requesterId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.isApproved) return res.status(400).json({ message: 'User already approved' });
+    if (user.approvalRequested) return res.status(400).json({ message: 'Approval already requested' });
+
+    user.approvalRequested = true;
+    await user.save();
+
+    // Optionally: notify admins via some notification channel (not implemented)
+
+    res.status(200).json({ message: 'Approval requested; an admin will review your account.' });
+  } catch (err) {
+    console.error('Error requesting approval:', err && (err.stack || err.message || err));
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export default { updateUserProfile };

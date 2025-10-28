@@ -41,10 +41,31 @@ const bookSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    rentedBy:{
+    // Support multiple concurrent renters when a book has multiple copies
+    rentedBy: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        default: null
+        ref: 'User'
+    }],
+    // total copies uploaded by owner and how many are currently rented
+    totalCopies: {
+        type: Number,
+        default: 1,
+        min: 1
+    },
+    rentedCount: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    // Whether this uploaded book has been approved by a system admin
+    approved: {
+        type: Boolean,
+        default: false
+    },
+    // Whether the owner has requested admin approval for this book
+    approvalRequested: {
+        type: Boolean,
+        default: false
     },
     status: {
         type: String,

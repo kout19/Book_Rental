@@ -4,6 +4,7 @@ import User from "../models/User.js"
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { defineAbilitiesFor } from './ability.js';
 
 // Try to initialize firebase-admin from a local service account JSON file if present
 if (!admin.apps.length) {
@@ -44,6 +45,13 @@ export const protect = async (req, res, next) => {
         return res.status(403).json({ message: "Account disabled. Contact admin." });
       }
       req.user = user;
+      // attach CASL abilities for downstream controllers
+      try {
+        req.ability = defineAbilitiesFor(user);
+      } catch (aErr) {
+        console.debug('ability: failed to build abilities', aErr && (aErr.message || aErr));
+        req.ability = null;
+      }
       return next();
     } catch (error) {
       console.debug('protect middleware: server JWT verify failed:', error.message || error);
@@ -69,6 +77,12 @@ export const protect = async (req, res, next) => {
             return res.status(403).json({ message: 'Account disabled. Contact admin.' });
           }
           req.user = user;
+          try {
+            req.ability = defineAbilitiesFor(user);
+          } catch (aErr) {
+            console.debug('ability: failed to build abilities', aErr && (aErr.message || aErr));
+            req.ability = null;
+          }
           return next();
         }
       } catch (fbErr) {
