@@ -16,45 +16,62 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { auth,db, googleProvider, githubProvider } from '../firebase/firebase';
 import { useAuth } from '../context/AuthContext';
+import API from '../api';
 import { getDoc, doc} from 'firebase/firestore'
 
-const handleGoogleLogin = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    const token = await user.getIdToken();
-    const userData = {
-      email: user.email,
-      name: user.displayName,
-      role: 'user', 
-      token: token,
-    };
-    console.log("Google login successful:", userData);
-  }catch (error) {
-    console.error("Google login failed:", error);
-    throw error; // Re-throw to handle in the calling function
-  }
-}
-const handleGithubLogin =async()=>{
-  try{
-    const result = await signInWithPopup(auth, githubProvider);
-    const user = result.user;
-    const token = await user.getIdToken();
-    const userData = {
-      email: user.email,
-      name: user.displayName,
-      role: 'user', 
-      token: token,
-    };
-    console.log("Github login successful:", userData);
-  }catch(error){
-    console.log("Github login failed:", error);
-    throw error; // Re-throw to handle in the calling function
-  }
-}
+// Social login handlers are defined inside the component so they can use AuthContext.login
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  // social login handlers (use login from context)
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const token = await user.getIdToken();
+      const userData = {
+        email: user.email,
+        name: user.displayName,
+        role: 'user',
+        token: token,
+      };
+      // persist token and user in auth context (merge profile info)
+      login(token, { uid: user.uid, email: user.email, name: user.displayName, role: 'user' });
+      // Sync with backend to obtain server JWT
+      try {
+        const resp = await API.post('/api/auth/sync', { name: user.displayName, email: user.email, role: 'user' }, { headers: { Authorization: `Bearer ${token}` } });
+        const serverToken = resp.data?.token;
+        if (serverToken) login(serverToken, { uid: user.uid, email: user.email, name: user.displayName, role: 'user' });
+      } catch (syncErr) {
+        console.warn('Social sync failed:', syncErr?.response?.data || syncErr.message || syncErr);
+      }
+      console.log('Google login successful:', userData);
+      navigate('/user/dashboard');
+    } catch (error) {
+      console.error('Google login failed:', error);
+      setServerError('Social login failed.');
+    }
+  };
+  const handleGithubLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, githubProvider);
+      const user = result.user;
+      const token = await user.getIdToken();
+      login(token, { uid: user.uid, email: user.email, name: user.displayName, role: 'user' });
+      try {
+        const resp = await API.post('/api/auth/sync', { name: user.displayName, email: user.email, role: 'user' }, { headers: { Authorization: `Bearer ${token}` } });
+        const serverToken = resp.data?.token;
+        if (serverToken) login(serverToken, { uid: user.uid, email: user.email, name: user.displayName, role: 'user' });
+      } catch (syncErr) {
+        console.warn('Social sync failed:', syncErr?.response?.data || syncErr.message || syncErr);
+      }
+      console.log('Github login successful');
+      navigate('/user/dashboard');
+    } catch (error) {
+      console.log('Github login failed:', error);
+      setServerError('Social login failed.');
+    }
+  };
   const [serverError, setServerError] = useState(null)
   const [loading, setLoading] = useState(false)
   const {
@@ -77,19 +94,31 @@ export default function Login() {
         alert("Please verify your email before logging in.")
         return;
       }
-      // login(user)
-      const userDoc=await getDoc(doc(db,'users',user.uid));
-      if(userDoc.exists()){
-        const userData=userDoc.data();
-        console.log("user Data:", userData);
-        login({uid:user.uid,...userData});
-      if (userData.role === 'admin') navigate('/admin/dashboard')
-      else if (userData.role === 'owner') navigate('/owner/dashboard')
-      else navigate('/user/dashboard')
+      // get Firebase ID token and user profile, then login
+      const token = await user.getIdToken();
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log('user Data:', userData);
+        // Persist token and merged user info (temporarily store firebase token)
+        login(token, { uid: user.uid, ...userData });
+        // Sync with backend to obtain server JWT and use that for protected endpoints
+        try {
+          const resp = await API.post('/api/auth/sync', { name: userData.name, email: userData.email, role: userData.role }, { headers: { Authorization: `Bearer ${token}` } });
+          const serverToken = resp.data?.token;
+          if (serverToken) {
+            // replace stored token with server JWT
+            login(serverToken, { uid: user.uid, ...userData });
+          }
+        } catch (syncErr) {
+          console.warn('Sync to backend failed:', syncErr?.response?.data || syncErr.message || syncErr);
+        }
+        if (userData.role === 'admin') navigate('/admin/dashboard')
+        else if (userData.role === 'owner') navigate('/owner/dashboard')
+        else navigate('/user/dashboard')
+      } else {
+        setServerError('No user data found. Please contact support.')
       }
-      else{
-        setServerError('No user data found. Please contact support.') 
-      }  
     } catch (err) {
       console.log(err.code, err.message)
       setServerError('Invalid email or password.')

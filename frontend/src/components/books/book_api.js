@@ -1,18 +1,24 @@
 // api/books.js
-import axios from "axios";
+import API from "../../api";
 
-const BASE_URL = import.meta.env.VITE_API_BOOK_BASE_URL;
-
-const API = {
+// Wrapper around the shared API axios instance. Backend exposes books at /api/books
+const BookAPI = {
   getBooks: (filters) => {
-    return axios.get(BASE_URL, { params: filters });
+    return API.get(`/api/books`, { params: filters });
   },
   getBookDetails: (id) => {
-    return axios.get(`${BASE_URL}/${id}`);
+    return API.get(`/api/books/${id}`);
   },
+  getCategories: () => {
+    return API.get(`/api/books/categories`);
+  },
+  // backend expects borrow endpoint: POST /api/books/borrow/:bookId
   rentBook: (bookId, userId) => {
-    return axios.post(`${BASE_URL}/${bookId}/rent`, { userId });
+    return API.post(`/api/books/borrow/${bookId}`, { userId });
+  },
+  getMyRentals: () => {
+    return API.get(`/api/books/my-rentals`);
   },
 };
 
-export default API;
+export default BookAPI;

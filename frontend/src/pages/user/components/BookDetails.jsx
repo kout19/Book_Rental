@@ -8,6 +8,7 @@ const BookDetails = () => {
   const navigate = useNavigate();
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [renting, setRenting] = useState(false);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -61,14 +62,26 @@ const BookDetails = () => {
           <Typography variant="body1" sx={{ mb: 2 }}>{book.description}</Typography>
           <Typography variant="h6" sx={{ mb: 2 }}>Rent Price: ${book.rentPrice}</Typography>
           <Button 
-            variant="contained" 
+            variant="contained"
             sx={{ mr: 2 }}
-            onClick={() => {
-              // TODO: Implement rent functionality
-              alert("Rent functionality not implemented yet");
+            disabled={renting}
+            onClick={async () => {
+              setRenting(true);
+              try {
+                await BookAPI.rentBook(id);
+                alert('✅ Book rented successfully');
+                // Navigate to My Rentals
+                navigate('/user/my-rentals');
+              } catch (err) {
+                console.error('Error renting book:', err);
+                const serverMsg = err?.response?.data?.message || err?.response?.data?.error;
+                alert(`Failed to rent book: ${serverMsg || err.message}`);
+              } finally {
+                setRenting(false);
+              }
             }}
           >
-            Rent This Book
+            {renting ? 'Renting...' : 'Rent This Book'}
           </Button>
           <Button 
             variant="outlined"

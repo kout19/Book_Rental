@@ -4,6 +4,7 @@ import cors from 'cors';
 import connectDB from './config/db.js';
 import adminRoutes from './routes/adminRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/books", bookRoutes);
+app.use('/api/auth', authRoutes);
 
 // Port from .env or default 5000
 const PORT = process.env.PORT || 5000;

@@ -18,6 +18,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { useState } from 'react';
+import API from '../api';
 import { app } from '../firebase/firebase';
 
 const auth = getAuth(app);
@@ -55,6 +56,16 @@ export default function Register() {
         createdAt: serverTimestamp(),
         emailVerified: false
       });
+
+      // Sync user to backend (create Mongo user). Use Firebase ID token for verification.
+      try {
+        const token = await user.getIdToken();
+        await API.post('/api/auth/sync', { name: data.name, email: data.email, role: 'user' }, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (syncErr) {
+        console.warn('Failed to sync user to backend:', syncErr?.response?.data || syncErr.message || syncErr);
+      }
 
       alert('Registration successful! Check your email (including spam folder) to verify your account.');
       navigate('/verify-email');

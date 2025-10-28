@@ -18,7 +18,7 @@ export const importBooks = async (req, res) => {
     const booksToSave = books.map((doc, index) => {
       const year = parseInt(doc.publish_year?.[0]) || currentYear;
       const age = currentYear - year;
-      const price = age < 5 ? 20 : age < 20 ? 15 : 10;
+      const price = age < 5 ? 10 : age < 20 ? 5 : 10;
       const isbn = doc.isbn || `NO-ISBN-${Date.now()}-${index}`;
 
       return {
@@ -72,6 +72,33 @@ export const getBooks = async (req, res) => {
     } catch (error) {
         console.error("Error fetching books:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Get distinct categories
+export const getCategories = async (req, res) => {
+    try {
+        const categories = await Book.distinct('category');
+        const cleaned = categories.filter(Boolean).map((c) => c.toString());
+        res.status(200).json(cleaned);
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get rentals for the authenticated user
+export const getMyRentals = async (req, res) => {
+    try {
+        const renterId = req.user.id;
+        const rentals = await Book.find({ rentedBy: renterId })
+            .populate('owner', 'name email')
+            .populate('rentedBy', 'name email')
+            .select('-__v');
+        res.status(200).json(rentals);
+    } catch (error) {
+        console.error('Error fetching my rentals:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
