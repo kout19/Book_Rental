@@ -2,7 +2,8 @@ import User from '../models/User.js';
 
 export const getUsers = async (req, res) => {
     try{
-        const users = await User.find().select('-password');
+        // Populate ownedBooks so admin can see which owner uploaded which books
+        const users = await User.find().select('-password').populate('ownedBooks', 'title totalCopies approved approvalRequested');
         res.status(200).json(users);
     }catch(error){
         res.status(500).json({message: "Failed to fetch users", error: error.message});

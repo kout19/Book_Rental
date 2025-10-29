@@ -19,6 +19,9 @@ const BookAPI = {
   getMyRentals: () => {
     return API.get(`/api/books/my-rentals`);
   },
+  returnBook: (bookId) => {
+    return API.post(`/api/books/return/${bookId}`);
+  },
 };
 
 export default BookAPI;

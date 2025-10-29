@@ -231,7 +231,7 @@ export const requestBookApproval = async (req, res) => {
 // Add a new book
 export const addBook = async (req, res) => {
     try {
-        const { title, author, description, category, ISBN, publishedYear, totalCopies } = req.body;
+        const { title, author, description, category, ISBN, publishedYear, totalCopies, rentPrice } = req.body;
         const ownerId = req.user.id;
         const book = await Book.create({
             title,
@@ -242,6 +242,7 @@ export const addBook = async (req, res) => {
             publishedYear,
             owner: ownerId,
             totalCopies: totalCopies || 1,
+            rentPrice: rentPrice || 0,
             rentedCount: 0,
             approved: false, // owner uploaded books must be approved by admin
             status: 'available',

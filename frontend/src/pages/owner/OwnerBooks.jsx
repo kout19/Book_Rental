@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Container, Typography, Grid, Card, CardContent, Button, TextField, Box, MenuItem } from '@mui/material';
 import API from '../../api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function OwnerBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
-  const [form, setForm] = useState({ title: '', author: '', totalCopies: 1, description: '', publishedYear: new Date().getFullYear(), category: '' });
+  const [form, setForm] = useState({ title: '', author: '', totalCopies: 1, description: '', publishedYear: new Date().getFullYear(), category: '', rentPrice: 0 });
+  const titleRef = useRef(null);
+  const location = useLocation();
 
   const fetchBooks = async () => {
     setLoading(true);
@@ -24,6 +27,14 @@ export default function OwnerBooks() {
   };
 
   useEffect(() => { fetchBooks(); }, []);
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get('mode') === 'create') {
+      setEditing(null);
+      setTimeout(() => titleRef.current?.focus(), 150);
+    }
+  }, [location.search]);
 
   const handleCreate = async () => {
     try {
@@ -70,13 +81,61 @@ export default function OwnerBooks() {
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" sx={{ mb: 2 }}>My Books</Typography>
       <Box component="form" sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }} onSubmit={(e)=>{e.preventDefault(); editing ? handleSave() : handleCreate();}}>
-        <TextField label="Title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+  <TextField inputRef={titleRef} label="Title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <TextField label="Author" required value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
+        <TextField label="Price" required type="number" value={form.rentPrice} onChange={(e)=> setForm({...form, rentPrice: Number(e.target.value)})} sx={{ width: 120 }} />
         <TextField label="Copies" required type="number" value={form.totalCopies} onChange={(e) => setForm({ ...form, totalCopies: Number(e.target.value) })} sx={{ width: 120 }} />
         <TextField label="Published Year" type="number" value={form.publishedYear} onChange={(e) => setForm({ ...form, publishedYear: Number(e.target.value) })} sx={{ width: 140 }} />
         <TextField label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
         <TextField label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} sx={{ minWidth: 320 }} />
         <Button type="submit" variant="contained">{editing ? 'Save' : 'Create'}</Button>
+        <label style={{ display: 'inline-block', marginLeft: 8 }}>
+          <input type="file" accept=".json,.txt" style={{ display: 'none' }} onChange={async (e)=>{
+            const file = e.target.files?.[0];
+            if(!file) return;
+            setUploading(true);
+            try{
+              const text = await file.text();
+              // Try JSON parse first
+              let parsed;
+              try { parsed = JSON.parse(text); } catch { parsed = null; }
+              if (Array.isArray(parsed)){
+                // batch create
+                for(const item of parsed){
+                  const payload = {
+                    title: item.title || item.name,
+                    author: item.author || item.writer || '',
+                    description: item.description || item.summary || '',
+                    totalCopies: item.totalCopies || 1,
+                    publishedYear: item.publishedYear || item.year || new Date().getFullYear(),
+                    category: item.category || 'Uploaded',
+                    rentPrice: item.rentPrice || item.price || 0
+                  };
+                  await API.post('/api/books', payload);
+                }
+                alert('Uploaded and created books');
+                fetchBooks();
+              } else {
+                // plain text parsing: first line title, second author, rest description
+                const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+                const payload = {
+                  title: lines[0] || 'Untitled',
+                  author: lines[1] || '',
+                  description: lines.slice(2).join('\n') || '',
+                  totalCopies: 1,
+                  publishedYear: new Date().getFullYear(),
+                  category: 'Uploaded',
+                  rentPrice: form.rentPrice || 0
+                };
+                await API.post('/api/books', payload);
+                alert('Uploaded book');
+                fetchBooks();
+              }
+            }catch(err){ console.error('Upload failed', err); alert('Upload failed'); }
+            setUploading(false);
+          }} />
+          <Button variant="outlined" component="span" disabled={uploading}>Upload File</Button>
+        </label>
       </Box>
 
       {loading ? <Typography>Loading...</Typography> : (

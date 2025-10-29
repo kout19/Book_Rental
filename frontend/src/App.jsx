@@ -36,12 +36,12 @@ function App() {
        <Route path="profile" element={<Profile/>}/>
    </Route>
    {/* Owner routes */}
-   <Route path="/owner/*">
+   <Route path="/owner/*" element={<UserNavbar />}>
      <Route path="dashboard" element={<RequireAuth><OwnerDashboard/></RequireAuth>} />
      <Route path="books" element={<RequireAuth><OwnerBooks/></RequireAuth>} />
    </Route>
-    {/* Admin routes */}
-   <Route path="/admin/*" element={<AdminLayout />}>
+     {/* Admin routes */}
+     <Route path="/admin/*" element={<RequireAuth><AdminLayout /></RequireAuth>}>
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="users" element={<ManageUsers />} />
         <Route path="books" element={<ManageBooks />} />

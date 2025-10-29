@@ -25,7 +25,7 @@ import { onAuthStateChanged, reload, signOut } from "firebase/auth";
 import { useAuth } from "../../../context/AuthContext";
 const RenterNavbar = () => {
     const navigate = useNavigate();
-    const { logout } = useAuth();
+  const { logout, user } = useAuth();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [anchorEl, setAnchorEl] = useState(null);
@@ -100,8 +100,12 @@ const RenterNavbar = () => {
           {/* Desktop Navigation */}
           {!isMobile && (
             <>
-              <Button color="inherit" component={Link} to="/user/browse-books">Browse Books</Button>
-              <Button color="inherit" component={Link} to="/user/my-rentals">My Rentals</Button>
+              {user?.role !== 'owner' && (
+                <>
+                  <Button color="inherit" component={Link} to="/user/browse-books">Browse Books</Button>
+                  <Button color="inherit" component={Link} to="/user/my-rentals">My Rentals</Button>
+                </>
+              )}
             </>
           )}
           
@@ -199,19 +203,23 @@ const RenterNavbar = () => {
           
           {/* Navigation Links */}
           <List>
-            <ListItemButton component={Link} to="/user/browse-books" onClick={handleMobileDrawerClose}>
-              <ListItemIcon>
-                <MenuBook />
-              </ListItemIcon>
-              <ListItemText primary="Browse Books" />
-            </ListItemButton>
-            
-            <ListItemButton component={Link} to="/user/my-rentals" onClick={handleMobileDrawerClose}>
-              <ListItemIcon>
-                <LibraryBooks />
-              </ListItemIcon>
-              <ListItemText primary="My Rentals" />
-            </ListItemButton>
+            {user?.role !== 'owner' && (
+              <>
+                <ListItemButton component={Link} to="/user/browse-books" onClick={handleMobileDrawerClose}>
+                  <ListItemIcon>
+                    <MenuBook />
+                  </ListItemIcon>
+                  <ListItemText primary="Browse Books" />
+                </ListItemButton>
+                
+                <ListItemButton component={Link} to="/user/my-rentals" onClick={handleMobileDrawerClose}>
+                  <ListItemIcon>
+                    <LibraryBooks />
+                  </ListItemIcon>
+                  <ListItemText primary="My Rentals" />
+                </ListItemButton>
+              </>
+            )}
             
             <ListItemButton component={Link} to="/user/profile" onClick={handleMobileDrawerClose}>
               <ListItemIcon>

@@ -8,7 +8,8 @@ const ManageUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data } = await API.get("/users");
+      // Admin API path
+      const { data } = await API.get("/api/admin/users");
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -23,7 +24,7 @@ const ManageUsers = () => {
 
   const handleRoleChange = async (id, role) => {
     try {
-      await API.put(`/users/${id}/role`, { role });
+      await API.put(`/api/admin/users/${id}/role`, { role });
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -34,7 +35,7 @@ const ManageUsers = () => {
     const newStatus = currentStatus === "active" ? "disabled" : "active";
     if (newStatus === "disabled" && !window.confirm("Disable this user? They will be blocked from auth.")) return;
     try {
-      await API.patch(`/users/${id}/status`, { status: newStatus });
+      await API.patch(`/api/admin/users/${id}/status`, { status: newStatus });
       fetchUsers();
     } catch (err) {
       console.error(err);
@@ -44,10 +45,19 @@ const ManageUsers = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Hard delete user? This is permanent.")) return;
     try {
-      await API.delete(`/users/${id}`);
+      await API.delete(`/api/admin/users/${id}`);
       fetchUsers();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleApproveOwner = async (id, approve) => {
+    try {
+      await API.put(`/api/admin/users/${id}/approve`, { approved: approve });
+      fetchUsers();
+    } catch (err) {
+      console.error('Approve owner failed', err);
     }
   };
 
@@ -82,6 +92,9 @@ const ManageUsers = () => {
                   <div>
                     <div className="font-semibold">{user.name}</div>
                     <div className="text-sm text-gray-600">{user.email}</div>
+                    {user.ownedBooks && user.ownedBooks.length > 0 && (
+                      <div className="text-sm text-gray-700 mt-2">Uploads: {user.ownedBooks.map(b=>b.title).join(', ')}</div>
+                    )}
                   </div>
                   <span className={`px-2 py-1 rounded text-xs ${user.status === "active" ? "bg-green-100" : "bg-red-100"}`}>
                     {user.status}
@@ -134,38 +147,59 @@ const ManageUsers = () => {
               <tbody>
                 {filtered.map((user) => (
                   <tr key={user._id} className="border">
-                    <td className="border p-2">{user.name}</td>
-                    <td className="border p-2">{user.email}</td>
-                    <td className="border p-2">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                        className="border p-1 rounded"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td className="border p-2">
-                      <span className={`px-2 py-1 rounded text-sm ${user.status === "active" ? "bg-green-100" : "bg-red-100"}`}>
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="border p-2 space-x-2">
-                      <button
-                        onClick={() => handleStatusToggle(user._id, user.status)}
-                        className="px-2 py-1 rounded border"
-                      >
-                        {user.status === "active" ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        className="px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                      <td className="border p-2">{user.name}{user.approvalRequested ? ' (Requested)' : ''}
+                        {user.ownedBooks && user.ownedBooks.length > 0 && (
+                          <div className="text-sm text-gray-600">Uploads: {user.ownedBooks.map(b=>b.title).join(', ')}</div>
+                        )}
+                      </td>
+                      <td className="border p-2">{user.email}</td>
+                      <td className="border p-2">
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                          className="border p-1 rounded"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                          <option value="owner">Owner</option>
+                        </select>
+                      </td>
+                      <td className="border p-2">
+                        <span className={`px-2 py-1 rounded text-sm ${user.status === "active" ? "bg-green-100" : "bg-red-100"}`}>
+                          {user.status}
+                        </span>
+                      </td>
+                      <td className="border p-2 space-x-2">
+                        <button
+                          onClick={() => handleStatusToggle(user._id, user.status)}
+                          className="px-2 py-1 rounded border"
+                        >
+                          {user.status === "active" ? "Disable" : "Enable"}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user._id)}
+                          className="px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                        >
+                          Delete
+                        </button>
+                        {user.role === 'owner' && (
+                          <>
+                            <button
+                              onClick={() => handleApproveOwner(user._id, true)}
+                              className="px-2 py-1 rounded bg-green-500 text-white hover:bg-green-600 ml-2"
+                            >
+                              Approve Owner
+                            </button>
+                            <button
+                              onClick={() => handleApproveOwner(user._id, false)}
+                              className="px-2 py-1 rounded bg-yellow-500 text-white hover:bg-yellow-600 ml-2"
+                            >
+                              Unapprove
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>

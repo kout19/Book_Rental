@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Container, Typography, Grid, Box } from "@mui/material";
+import { Container, Typography, Grid, Box, Button } from "@mui/material";
 import BookAPI from "../../../components/books/book_api";
 import BookCard from "../../../components/books/BookCard";
 
@@ -35,6 +35,17 @@ const MyRentals = () => {
     fetch();
   }, []);
 
+  const handleReturn = async (bookId) => {
+    if (!confirm('Return this book?')) return;
+    try {
+      await BookAPI.returnBook(bookId);
+      setBooks((b) => b.filter((x) => x.id !== bookId));
+    } catch (err) {
+      console.error('Return failed', err);
+      alert('Failed to return');
+    }
+  };
+
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>My Rentals</Typography>
@@ -42,7 +53,7 @@ const MyRentals = () => {
         <Typography>Loading...</Typography>
       ) : (
         <Grid container spacing={3}>
-          {books.length === 0 ? (
+            {books.length === 0 ? (
             <Grid item xs={12}>
               <Typography>No rentals found.</Typography>
             </Grid>
@@ -51,6 +62,9 @@ const MyRentals = () => {
               <Grid item xs={12} sm={6} md={4} key={book.id}>
                 <Box>
                   <BookCard book={book} />
+                  <Box sx={{ mt: 1, display: 'flex', gap: 1 }}>
+                   <Button variant="outlined" size="small" onClick={() => handleReturn(book.id)}>Remove</Button>
+                  </Box>
                 </Box>
               </Grid>
             ))
