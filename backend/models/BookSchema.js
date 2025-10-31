@@ -36,6 +36,19 @@ const bookSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    // Optional uploaded file metadata (owner-uploaded book file)
+    filePath: {
+        type: String,
+        default: null
+    },
+    fileMimeType: {
+        type: String,
+        default: null
+    },
+    fileSize: {
+        type: Number,
+        default: 0
+    },
     owner:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

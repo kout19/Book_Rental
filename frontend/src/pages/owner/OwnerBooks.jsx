@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Container, Typography, Grid, Card, CardContent, Button, TextField, Box, MenuItem } from '@mui/material';
 import API from '../../api';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export default function OwnerBooks() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const navigate = useNavigate();
   const [form, setForm] = useState({ title: '', author: '', totalCopies: 1, description: '', publishedYear: new Date().getFullYear(), category: '', rentPrice: 0 });
   const titleRef = useRef(null);
   const location = useLocation();
@@ -90,45 +89,55 @@ export default function OwnerBooks() {
         <TextField label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} sx={{ minWidth: 320 }} />
         <Button type="submit" variant="contained">{editing ? 'Save' : 'Create'}</Button>
         <label style={{ display: 'inline-block', marginLeft: 8 }}>
-          <input type="file" accept=".json,.txt" style={{ display: 'none' }} onChange={async (e)=>{
+          <input type="file" accept=".json,.txt,.pdf,.epub" style={{ display: 'none' }} onChange={async (e)=>{
             const file = e.target.files?.[0];
             if(!file) return;
             setUploading(true);
             try{
-              const text = await file.text();
-              // Try JSON parse first
-              let parsed;
-              try { parsed = JSON.parse(text); } catch { parsed = null; }
-              if (Array.isArray(parsed)){
-                // batch create
-                for(const item of parsed){
-                  const payload = {
-                    title: item.title || item.name,
-                    author: item.author || item.writer || '',
-                    description: item.description || item.summary || '',
-                    totalCopies: item.totalCopies || 1,
-                    publishedYear: item.publishedYear || item.year || new Date().getFullYear(),
-                    category: item.category || 'Uploaded',
-                    rentPrice: item.rentPrice || item.price || 0
-                  };
-                  await API.post('/api/books', payload);
+              // If JSON file, try batch import
+              if (file.name.endsWith('.json') || file.type === 'application/json'){
+                const text = await file.text();
+                let parsed;
+                try { parsed = JSON.parse(text); } catch { parsed = null; }
+                if (Array.isArray(parsed)){
+                  for(const item of parsed){
+                    const payload = {
+                      title: item.title || item.name,
+                      author: item.author || item.writer || '',
+                      description: item.description || item.summary || '',
+                      totalCopies: item.totalCopies || 1,
+                      publishedYear: item.publishedYear || item.year || new Date().getFullYear(),
+                      category: item.category || 'Imported',
+                      rentPrice: item.rentPrice || item.price || 0
+                    };
+                    await API.post('/api/books', payload);
+                  }
+                  alert('Uploaded and created books');
+                  fetchBooks();
                 }
-                alert('Uploaded and created books');
-                fetchBooks();
               } else {
-                // plain text parsing: first line title, second author, rest description
-                const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+                // For text/pdf/epub: read as ArrayBuffer and send base64 to server
+                const arrayBuffer = await file.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                const chunkSize = 0x8000;
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                  binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+                }
+                const base64 = btoa(binary);
                 const payload = {
-                  title: lines[0] || 'Untitled',
-                  author: lines[1] || '',
-                  description: lines.slice(2).join('\n') || '',
-                  totalCopies: 1,
-                  publishedYear: new Date().getFullYear(),
-                  category: 'Uploaded',
-                  rentPrice: form.rentPrice || 0
+                  fileName: file.name,
+                  mimeType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : ''),
+                  size: file.size,
+                  data: base64,
+                  title: form.title || file.name,
+                  author: form.author || '',
+                  category: form.category || 'Uploaded',
+                  rentPrice: form.rentPrice || 0,
+                  description: form.description || ''
                 };
-                await API.post('/api/books', payload);
-                alert('Uploaded book');
+                await API.post('/api/books/upload', payload);
+                alert('Uploaded book file');
                 fetchBooks();
               }
             }catch(err){ console.error('Upload failed', err); alert('Upload failed'); }

@@ -9,12 +9,14 @@ import ManageUsers from './pages/admin/pages/Manageusers'
 import ManageBooks from './pages/admin/pages/ManageBooks'
 import AdminProfile from './pages/admin/pages/AdminProfile'
 import AdminSettings from './pages/admin/pages/AdminSettings'
+import ApprovalRequests from './pages/admin/pages/ApprovalRequests'
 import RequireAuth from './routes/ProtectedRoute'
 import ManageOwnerUploads from './pages/admin/pages/ManageOwnerUploads'
 import UserNavbar from './pages/user/layout/UserNavbar'
 import UserDashboard from './pages/user/UserDashboard'
 import BrowseBooks from './pages/user/pages/BrowseBooks'
 import MyRentals from './pages/user/components/MyRentals'
+import ReadBook from './pages/user/ReadBook'
 import Profile from './pages/user/components/Profile'
 import BookDetails from './pages/user/components/BookDetails'  
 import OwnerDashboard from './pages/owner/OwnerDashboard'
@@ -32,7 +34,8 @@ function App() {
        {/* <Route path="dashboard" element={<UserDashboard/>}/> */}
        <Route path="browse-books" element={<BrowseBooks/>}/>
        <Route path="book/:id" element={<BookDetails/>}/>
-       <Route path="my-rentals" element={<MyRentals/>}/>
+  <Route path="read/:id" element={<RequireAuth><ReadBook/></RequireAuth>} />
+  <Route path="my-rentals" element={<RequireAuth><MyRentals/></RequireAuth>} />
        <Route path="profile" element={<Profile/>}/>
    </Route>
    {/* Owner routes */}
@@ -46,6 +49,7 @@ function App() {
         <Route path="users" element={<ManageUsers />} />
         <Route path="books" element={<ManageBooks />} />
   <Route path="owner-uploads" element={<ManageOwnerUploads/>} />
+  <Route path="approval-requests" element={<ApprovalRequests/>} />
     <Route path="profile" element={<RequireAuth><AdminProfile/></RequireAuth>} />
     <Route path="settings" element={<RequireAuth><AdminSettings/></RequireAuth>} />
     </Route>

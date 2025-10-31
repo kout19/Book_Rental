@@ -22,6 +22,12 @@ const BookAPI = {
   returnBook: (bookId) => {
     return API.post(`/api/books/return/${bookId}`);
   },
+
+
+  // Request to become owner (user requests admin approval)
+  requestOwnerApproval: () => {
+    return API.post('/api/users/request-approval');
+  }
 };
 
 export default BookAPI;

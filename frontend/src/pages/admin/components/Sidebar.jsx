@@ -6,6 +6,7 @@ const adminMenu = [
   { label: 'Manage Users', path: '/admin/users' },
   { label: 'Manage Books', path: '/admin/books' },
   { label: 'Owner Uploads', path: '/admin/owner-uploads' },
+  { label: 'Approval Requests', path: '/admin/approval-requests' },
 ]
 
 export default function AdminSidebar() {

@@ -7,6 +7,9 @@ import {
     approveOwner,
     approveBook,
     listUnapprovedBooks,
+    getApprovalRequests,
+    approveUsersBulk,
+    approveBooksBulk,
 } from '../controllers/adminController.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -21,4 +24,9 @@ router.put('/users/:id/approve', approveOwner);
 // Admin book approval endpoint
 router.put('/books/:id/approve', approveBook);
 router.get('/unapproved-books', listUnapprovedBooks);
+// Approval requests overview
+router.get('/approval-requests', getApprovalRequests);
+// Bulk approve endpoints
+router.put('/users/approve-bulk', approveUsersBulk);
+router.put('/books/approve-bulk', approveBooksBulk);
 export default router;

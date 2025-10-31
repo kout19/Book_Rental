@@ -86,12 +86,55 @@ export const approveOwner = async (req, res) => {
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
         user.isApproved = !!approved;
-        // if approving, clear approvalRequested flag
-        if (approved) user.approvalRequested = false;
+        // if approving, clear approvalRequested flag and set role to 'owner'
+        if (approved) {
+            user.approvalRequested = false;
+            user.role = 'owner';
+        }
         await user.save();
         res.status(200).json({ message: `User ${approved ? 'approved' : 'unapproved'}`, user });
     } catch (error) {
         console.error('Error approving user:', error);
         res.status(500).json({ message: 'Failed to set user approval', error: error.message });
+    }
+};
+
+// List all approval requests (owners and books)
+export const getApprovalRequests = async (req, res) => {
+    try {
+        const Book = (await import('../models/BookSchema.js')).default;
+        const userRequests = await User.find({ approvalRequested: true }).select('-password');
+        const bookRequests = await Book.find({ approvalRequested: true }).populate('owner', 'name email');
+        res.status(200).json({ users: userRequests, books: bookRequests });
+    } catch (error) {
+        console.error('Error fetching approval requests:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Bulk approve/unapprove users (expects { ids: [id], approved: true/false })
+export const approveUsersBulk = async (req, res) => {
+    try {
+        const { ids, approved } = req.body;
+        if (!Array.isArray(ids)) return res.status(400).json({ message: 'ids must be an array' });
+        const result = await User.updateMany({ _id: { $in: ids } }, { $set: { isApproved: !!approved, approvalRequested: false } });
+        res.status(200).json({ message: 'Users updated', result });
+    } catch (error) {
+        console.error('Error bulk approving users:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Bulk approve/unapprove books (expects { ids: [id], approved: true/false })
+export const approveBooksBulk = async (req, res) => {
+    try {
+        const { ids, approved } = req.body;
+        const Book = (await import('../models/BookSchema.js')).default;
+        if (!Array.isArray(ids)) return res.status(400).json({ message: 'ids must be an array' });
+        const result = await Book.updateMany({ _id: { $in: ids } }, { $set: { approved: !!approved, approvalRequested: false } });
+        res.status(200).json({ message: 'Books updated', result });
+    } catch (error) {
+        console.error('Error bulk approving books:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };

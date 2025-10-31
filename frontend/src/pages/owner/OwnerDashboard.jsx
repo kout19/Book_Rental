@@ -43,14 +43,14 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleProfile = () => {
-    navigate('/profile');
-  };
+  // const handleProfile = () => {
+  //   navigate('/profile');
+  // };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  // const handleLogout = () => {
+  //   logout();
+  //   navigate('/');
+  // };
 
   const totalBooks = books.length;
   const approvedCount = books.filter((b) => b.approved).length;
@@ -101,8 +101,8 @@ export default function OwnerDashboard() {
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Button variant="contained" onClick={() => navigate('/owner/books')}>Manage My Books</Button>
         <Button variant="outlined" onClick={() => navigate('/owner/books')}>Add New Book</Button>
-        <Button variant="text" onClick={handleProfile}>Profile</Button>
-        <Button variant="text" onClick={handleLogout}>Logout</Button>
+        {/* <Button variant="text" onClick={handleProfile}>Profile</Button>
+        <Button variant="text" onClick={handleLogout}>Logout</Button> */}
         {!server?.isApproved && !server?.approvalRequested && (
           <Button color="secondary" onClick={handleRequestApproval}>Request Account Approval</Button>
         )}
