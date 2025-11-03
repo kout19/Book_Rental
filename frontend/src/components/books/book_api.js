@@ -31,3 +31,17 @@ const BookAPI = {
 };
 
 export default BookAPI;
+
+// Stripe
+BookAPI.createStripeSession = ({ bookId, periodDays, startDate }) => {
+  return API.post('/api/payments/create-stripe', { bookId, periodDays, startDate });
+};
+BookAPI.confirmStripe = ({ session_id, bookId, periodDays, startDate }) => {
+  return API.post('/api/payments/confirm-stripe', { session_id, bookId, periodDays, startDate });
+};
+
+// AI assistant
+BookAPI.aiAsk = (prompt) => {
+  return API.post('/api/ai/ask', { prompt });
+};
+ 

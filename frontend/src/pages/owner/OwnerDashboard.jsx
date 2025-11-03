@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box as MuiBox } from '@mui/material';
 
 export default function OwnerDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [server, setServer] = useState(null);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);

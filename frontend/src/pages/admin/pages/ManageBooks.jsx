@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../../../api";
 
 export default function AdminImportBooks() {
@@ -9,6 +9,7 @@ export default function AdminImportBooks() {
   const [importing, setImporting] = useState(false);
   const [page, setPage] = useState(1);
   const [modalBook, setModalBook] = useState(null); // for book preview modal
+  const [existingBooks, setExistingBooks] = useState([]);
   const [numFound, setNumFound] = useState(0);
 
   const limit = 12; // books per page
@@ -80,6 +81,8 @@ export default function AdminImportBooks() {
       console.log("saved books", res.data.savedBooks);
       alert(`✅ ${res.data.savedBooks.length} books imported successfully!`);
       setSelectedBooks([]);
+      // refresh existing books list so imported books appear immediately
+      await fetchExistingBooks();
     } catch (error) {
       console.error("Error importing books:", error);
       // Show server-provided message when available
@@ -91,6 +94,46 @@ export default function AdminImportBooks() {
       }
     } finally {
       setImporting(false);
+    }
+  };
+
+  // Fetch existing books (admin can see all)
+  const fetchExistingBooks = async () => {
+    try {
+      const { data } = await API.get('/api/books');
+      // data may be an array
+      setExistingBooks(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch existing books', err);
+      setExistingBooks([]);
+    }
+  };
+
+  useEffect(() => {
+    // load admin's view of books on mount
+    fetchExistingBooks();
+  }, []);
+
+  const handleDeleteBook = async (id) => {
+    if (!confirm('Delete this book?')) return;
+    try {
+      await API.delete(`/api/books/${id}`);
+      alert('Book deleted');
+      fetchExistingBooks();
+    } catch (err) {
+      console.error('Failed to delete book', err);
+      alert('Failed to delete book');
+    }
+  };
+
+  const handleApproveBook = async (book, approved = true) => {
+    try {
+      await API.put(`/api/admin/books/${book._id}/approve`, { approved });
+      alert(`Book ${approved ? 'approved' : 'unapproved'}`);
+      fetchExistingBooks();
+    } catch (err) {
+      console.error('Failed to set approval', err);
+      alert('Failed to update approval');
     }
   };
 
@@ -215,6 +258,35 @@ export default function AdminImportBooks() {
           </button>
         </div>
       )}
+
+      {/* Existing books (admin listing + actions) */}
+      <div className="mt-10">
+        <h3 className="text-lg font-semibold mb-3">Existing Books</h3>
+        {existingBooks.length === 0 ? (
+          <p className="text-gray-600">No books found.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {existingBooks.map((b) => (
+              <div key={b._id} className="p-3 border rounded-xl shadow-sm bg-white">
+                <div className="flex gap-3">
+                  <img src={b.image || 'https://via.placeholder.com/100x140?text=No+Cover'} alt={b.title} className="w-20 h-28 object-cover rounded" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-800 truncate">{b.title}</h4>
+                    <p className="text-sm text-gray-600">{b.author}</p>
+                    <p className="text-xs text-gray-500">{b.publishedYear || ''}</p>
+                    <div className="mt-3 flex gap-2">
+                      <button onClick={() => handleApproveBook(b, true)} className="px-3 py-1 bg-green-600 text-white rounded">Approve</button>
+                      <button onClick={() => handleApproveBook(b, false)} className="px-3 py-1 bg-yellow-500 text-white rounded">Unapprove</button>
+                      <button onClick={() => handleDeleteBook(b._id)} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                      <a href={`/admin/books?view=${b._id}`} className="px-3 py-1 bg-gray-200 rounded">View</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Book Preview Modal */}
       {modalBook && (

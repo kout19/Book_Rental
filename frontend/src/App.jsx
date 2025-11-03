@@ -19,6 +19,7 @@ import MyRentals from './pages/user/components/MyRentals'
 import ReadBook from './pages/user/ReadBook'
 import Profile from './pages/user/components/Profile'
 import BookDetails from './pages/user/components/BookDetails'  
+import CheckoutSuccess from './pages/user/components/CheckoutSuccess'
 import OwnerDashboard from './pages/owner/OwnerDashboard'
 import OwnerBooks from './pages/owner/OwnerBooks'
 function App() {
@@ -34,6 +35,7 @@ function App() {
        {/* <Route path="dashboard" element={<UserDashboard/>}/> */}
        <Route path="browse-books" element={<BrowseBooks/>}/>
        <Route path="book/:id" element={<BookDetails/>}/>
+  <Route path="checkout-success" element={<CheckoutSuccess/>} />
   <Route path="read/:id" element={<RequireAuth><ReadBook/></RequireAuth>} />
   <Route path="my-rentals" element={<RequireAuth><MyRentals/></RequireAuth>} />
        <Route path="profile" element={<Profile/>}/>

@@ -6,6 +6,9 @@ import adminRoutes from './routes/adminRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/userRoutes.js';
+import paymentsRoutes from './routes/paymentsRoutes.js';
+import aiController from './controllers/aiController.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 dotenv.config();
 
@@ -25,6 +28,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/books", bookRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/ai', (await import('./routes/aiRoutes.js')).default);
 
 // Port from .env or default 5000
 const PORT = process.env.PORT || 5000;

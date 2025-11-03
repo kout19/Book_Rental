@@ -1,0 +1,10 @@
+import express from 'express';
+import { askAI } from '../controllers/aiController.js';
+import { protect } from '../middleware/authMiddleware.js';
+
+const router = express.Router();
+
+// Protected AI assistant endpoint
+router.post('/ask', protect, askAI);
+
+export default router;

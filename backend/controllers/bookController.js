@@ -120,8 +120,8 @@ export const getMyRentals = async (req, res) => {
     try {
         if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
         const renterId = req.user.id;
-        // Return Rental records for the user, with populated book and owner info
-        const rentals = await Rental.find({ renter: renterId }).populate('book').populate('owner', 'name email');
+        // Return only active (not returned) Rental records for the user, with populated book and owner info
+        const rentals = await Rental.find({ renter: renterId, returned: false }).populate('book').populate('owner', 'name email');
         res.status(200).json(rentals);
     } catch (error) {
         console.error('Error fetching my rentals:', error && (error.stack || error.message || error));
@@ -305,9 +305,14 @@ export const returnBook = async (req, res) => {
         const {bookId} = req.params;
         const book = await Book.findById(bookId);
         if(!book) return res.status(404).json({message: "Book not found"});
-        // Ensure renter had rented this book
-        if (!book.rentedBy || !book.rentedBy.find((r) => r.toString() === renterId)) {
-            return res.status(403).json({message: "You did not rent this book"});
+        // Prefer checking an active Rental record for this user/book combination.
+        // This is more reliable than the book.rentedBy array which can get out of sync.
+        const activeRental = await Rental.findOne({ renter: renterId, book: book._id, returned: false });
+        if (!activeRental) {
+            // Fallback: check rentedBy array (back-compat)
+            if (!book.rentedBy || !book.rentedBy.find((r) => r.toString() === renterId)) {
+                return res.status(403).json({message: "You do not have an active rental for this book"});
+            }
         }
     // Remove renter from rentedBy array and decrement rentedCount
     book.rentedBy = book.rentedBy.filter((r) => r.toString() !== renterId);
