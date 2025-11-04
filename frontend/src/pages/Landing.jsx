@@ -11,7 +11,9 @@ export default function Landing() {
       <HeroSection />
       <FeatureSection />
       <FAQSection />
-      <ContactSection />
+      <section id='contact'>
+       <ContactSection />
+      </section>
       <LandingFooter />
     </>
   )

@@ -22,6 +22,8 @@ import BookDetails from './pages/user/components/BookDetails'
 import CheckoutSuccess from './pages/user/components/CheckoutSuccess'
 import OwnerDashboard from './pages/owner/OwnerDashboard'
 import OwnerBooks from './pages/owner/OwnerBooks'
+import Terms from './pages/Terms'
+import Privacy from './pages/privacy'
 function App() {
   return (
 <div>
@@ -30,6 +32,8 @@ function App() {
    <Route path="/login" element={<Login />} />
    <Route path="/register" element={<Register />} />
    <Route path="/verify-email" element={<EmailVerify />} />
+   <Route path="/terms" element={<Terms />} />
+   <Route path="/privacy" element={<Privacy />} />
    //user router
    <Route path="user/*" element={<UserNavbar />} >
        {/* <Route path="dashboard" element={<UserDashboard/>}/> */}

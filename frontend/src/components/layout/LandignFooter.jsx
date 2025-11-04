@@ -1,6 +1,7 @@
 import { Box, Typography, Container, Stack, Link } from '@mui/material'
 
 export default function LandingFooter() {
+
   return (
     <Box sx={{ py: 4, backgroundColor: '#1e293b', color: '#fff' }}>
       <Container maxWidth="lg">
@@ -21,9 +22,9 @@ export default function LandingFooter() {
             <Link href="/terms" underline="hover" color="inherit">
               Terms
             </Link>
-            <Link href="/contact" underline="hover" color="inherit">
+            {/* <Link href="/contact" underline="hover" color="inherit">
               Contact
-            </Link>
+            </Link> */}
           </Stack>
         </Stack>
       </Container>

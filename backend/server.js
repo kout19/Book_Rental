@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes.js';
 import paymentsRoutes from './routes/paymentsRoutes.js';
 import aiController from './controllers/aiController.js';
 import aiRoutes from './routes/aiRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // Routes
+app.use("/api/contact", contactRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/books", bookRoutes);
 app.use('/api/auth', authRoutes);

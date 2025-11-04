@@ -13,57 +13,71 @@ import {
   ListItemText,
   Divider,
   useMediaQuery,
-} from '@mui/material'
-import MenuIcon from '@mui/icons-material/Menu'
-import { useTheme } from '@mui/material/styles'
-import { useState } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
+} from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import { useTheme } from "@mui/material/styles";
+import { useState } from "react";
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 
 export default function LandingHeader() {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [open, setOpen] = useState(false)
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const toggleDrawer = (state) => () => setOpen(state)
+  const toggleDrawer = (state) => () => setOpen(state);
 
   const navLinks = [
-    { label: 'Home', path: '/' },
-    { label: 'About', path: '/about' },
-    { label: 'Contact', path: '/contact' },
-  ]
+    { label: "Home", path: "home" },
+    // { label: "About", path: "about" },
+    { label: "Contact", path: "contact" },
+  ];
 
   const authLinks = [
-    { label: 'Login', path: '/login' },
-    { label: 'Register', path: '/register' },
-  ]
+    { label: "Login", path: "/login" },
+    { label: "Register", path: "/register" },
+  ];
+
+  const handleScroll = (id) => {
+    // If already on home page, just scroll
+    if (location.pathname === "/") {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // Navigate to home, then scroll after short delay
+      navigate("/");
+      setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    }
+  };
 
   return (
     <>
       <AppBar position="static" color="primary" elevation={1}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar sx={{ justifyContent: "space-between" }}>
           <Typography
             variant="h6"
             component={RouterLink}
             to="/"
-            sx={{ color: 'white', textDecoration: 'none' }}
+            sx={{ color: "white", textDecoration: "none" }}
           >
             📚 BookRental
           </Typography>
 
           {isMobile ? (
-            // Mobile: Show hamburger
             <IconButton color="inherit" edge="end" onClick={toggleDrawer(true)}>
               <MenuIcon />
             </IconButton>
           ) : (
-            // Desktop/Tablet: Show nav buttons
             <Stack direction="row" spacing={2} alignItems="center">
               {navLinks.map((item) => (
                 <Button
                   key={item.path}
-                  component={RouterLink}
-                  to={item.path}
-                  sx={{ color: 'white' }}
+                  sx={{ color: "white" }}
+                  onClick={() => handleScroll(item.path)}
                 >
                   {item.label}
                 </Button>
@@ -73,11 +87,11 @@ export default function LandingHeader() {
                   key={item.path}
                   component={RouterLink}
                   to={item.path}
-                  variant={item.label === 'Register' ? 'outlined' : 'text'}
+                  variant={item.label === "Register" ? "outlined" : "text"}
                   sx={{
-                    color: 'white',
-                    borderColor: 'white',
-                    ml: item.label === 'Register' ? 1 : 0,
+                    color: "white",
+                    borderColor: "white",
+                    ml: item.label === "Register" ? 1 : 0,
                   }}
                 >
                   {item.label}
@@ -90,10 +104,14 @@ export default function LandingHeader() {
 
       {/* Mobile Drawer */}
       <Drawer anchor="right" open={open} onClose={toggleDrawer(false)}>
-        <Box sx={{ width: 250 }} role="presentation" onClick={toggleDrawer(false)}>
+        <Box
+          sx={{ width: 250 }}
+          role="presentation"
+          onClick={toggleDrawer(false)}
+        >
           <List>
             {navLinks.map((item) => (
-              <ListItem button component={RouterLink} to={item.path} key={item.path}>
+              <ListItem button key={item.path} onClick={() => handleScroll(item.path)}>
                 <ListItemText primary={item.label} />
               </ListItem>
             ))}
@@ -101,7 +119,12 @@ export default function LandingHeader() {
           <Divider />
           <List>
             {authLinks.map((item) => (
-              <ListItem button component={RouterLink} to={item.path} key={item.path}>
+              <ListItem
+                button
+                component={RouterLink}
+                to={item.path}
+                key={item.path}
+              >
                 <ListItemText primary={item.label} />
               </ListItem>
             ))}
@@ -109,5 +132,5 @@ export default function LandingHeader() {
         </Box>
       </Drawer>
     </>
-  )
+  );
 }

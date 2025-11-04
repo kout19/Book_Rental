@@ -9,7 +9,7 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { useState } from 'react'
-import axios from 'axios'
+import API from '../../api'
 
 export default function ContactSection() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' })
@@ -28,7 +28,7 @@ export default function ContactSection() {
     setSuccess(null)
 
     try {
-      const res = await axios.post('http://localhost:5000/api/contact', formData)
+      const res = await API.post('/api/contact', formData)
       if (res.status === 200) {
         setSuccess('Message sent successfully!')
         setFormData({ name: '', email: '', message: '' })
@@ -36,7 +36,7 @@ export default function ContactSection() {
         setError('Something went wrong.')
       }
     } catch (err) {
-      setError('Failed to send message.')
+      setError('Failed to send message.',err)
     } finally {
       setLoading(false)
     }
