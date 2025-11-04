@@ -116,6 +116,7 @@ const BookDetails = () => {
                 // Stripe flow
                 const { data } = await BookAPI.createStripeSession({ bookId: id, periodDays, startDate: start.toISOString() });
                 if (data) {
+                  console.log('Checkout data', data);
                   if (data.mock && data.successUrl) {
                     // For mock flow the server returns a successUrl containing tx_ref.
                     // Redirect to that URL so CheckoutSuccess can confirm the mock tx_ref.

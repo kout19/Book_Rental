@@ -5,7 +5,7 @@ import PendingPayment from '../models/PendingPayment.js';
 
 import Stripe from 'stripe';
 
-const stripeKey = process.env.STRIPE_SECRET_KEY || null;
+const stripeKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: '2022-11-15' }) : null;
 
 // --- Stripe integration -------------------------------------------------
@@ -76,17 +76,43 @@ export const confirmStripeAndCreateRental = async (req, res) => {
       pending.status = 'paid';
       await pending.save();
       // create rental similar to webhook
+   
       const userId = req.user?.id;
       if (!userId) return res.status(401).json({ message: 'Not authenticated' });
       const book = await Book.findById(bookId);
       if (!book) return res.status(404).json({ message: 'Book not found' });
       const availableCopies = (book.totalCopies || 1) - (book.rentedCount || 0);
       if (availableCopies <= 0) return res.status(400).json({ message: 'No available copies' });
-      const rental = await Rental.create({ renter: userId, book: book._id, owner: book.owner, startDate: startDate ? new Date(startDate) : new Date(), returned: false });
-      book.rentedBy = book.rentedBy || []; if (userId) book.rentedBy.push(userId);
-      book.rentedCount = (book.rentedCount || 0) + 1; if ((book.rentedCount || 0) >= (book.totalCopies || 1)) { book.status = 'rented'; book.available = false; }
-      await book.save(); if (userId) await User.findByIdAndUpdate(userId, { $push: { rentedBooks: book._id } });
-      rental.days = pending.periodDays || periodDays || 1; rental.totalPrice = pending.amount || 0; await rental.save();
+      //check if book is already rented
+      const existingRental = await Rental.findOne({
+        renter: userId,
+         book: book._id, 
+         owner: book.owner,
+          returned: false 
+        });
+      if(existingRental) {
+        return res.status(200).json({
+           message: 'payment cofirmed -Book already rented' ,
+           rental: existingRental
+          });
+      }
+      // create rental if not rented
+      const rental = await Rental.create({
+         renter: userId, 
+         book: book._id, 
+         owner: book.owner, 
+         startDate: startDate ? new Date(startDate) : new Date(),
+          returned: false 
+        });
+      book.rentedBy = book.rentedBy || [];
+       if (userId) book.rentedBy.push(userId);
+      book.rentedCount = (book.rentedCount || 0) + 1;
+      if ((book.rentedCount || 0) >= (book.totalCopies || 1)) { book.status = 'rented'; book.available = false; }
+      await book.save();
+      if (userId) await User.findByIdAndUpdate(userId, { $push: { rentedBooks: book._id } });
+      rental.days = pending.periodDays || periodDays || 1; 
+      rental.totalPrice = pending.amount || 0; 
+      await rental.save();
       return res.status(200).json({ message: 'Mock payment confirmed and rental created', rental });
     }
 
@@ -100,7 +126,7 @@ export const confirmStripeAndCreateRental = async (req, res) => {
       const pending = await PendingPayment.findOne({ tx_ref: session.id });
       if (pending) { pending.status = 'paid'; pending.reference = session.payment_intent || pending.reference; pending.stripeResponse = session; await pending.save(); }
     } catch (e) { console.warn('Failed to update pending', e); }
-
+//2
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: 'Not authenticated' });
     const book = await Book.findById(bookId || session.metadata?.bookId);
@@ -110,13 +136,29 @@ export const confirmStripeAndCreateRental = async (req, res) => {
 
     const start = startDate ? new Date(startDate) : (session.metadata?.startDate ? new Date(session.metadata.startDate) : new Date());
     const days = parseInt(periodDays || session.metadata?.periodDays || '1') || 1;
-
+    //check if book is already rented
+    const existingRental = await Rental.findOne({
+      renter: userId,
+       book: book._id,
+       owner: book.owner, 
+       returned: false 
+      });
+    if(existingRental) {
+      return res.status(200).json({
+         message: 'payment cofirmed -Book already rented' ,
+         rental: existingRental
+        });
+    }
+    // create rental if not rented
     const rental = await Rental.create({ renter: userId, book: book._id, owner: book.owner, startDate: start, returned: false });
     book.rentedBy = book.rentedBy || []; book.rentedBy.push(userId);
     book.rentedCount = (book.rentedCount || 0) + 1; if ((book.rentedCount || 0) >= (book.totalCopies || 1)) { book.status = 'rented'; book.available = false; }
-    await book.save(); await User.findByIdAndUpdate(userId, { $push: { rentedBooks: book._id } });
+    await book.save();
+    await User.findByIdAndUpdate(userId, { $push: { rentedBooks: book._id } });
 
-    rental.days = days; rental.totalPrice = (session.amount_total || 0) / 100; await rental.save();
+    rental.days = days; 
+    rental.totalPrice = (session.amount_total || 0) / 100;
+     await rental.save();
 
     // credit owner
     try { const owner = await User.findById(book.owner); if (owner) { owner.wallet = (owner.wallet || 0) + (rental.totalPrice || 0); await owner.save(); } } catch (wErr) { console.error('Failed to credit owner wallet after stripe payment:', wErr); }
@@ -130,6 +172,8 @@ export const confirmStripeAndCreateRental = async (req, res) => {
 
 // Stripe webhook handler
 export const stripeWebhookHandler = async (req, res) => {
+  console.log('📬 Stripe webhook received!');
+
   try {
     const rawBody = req.rawBody || req.body;
     const sig = req.headers['stripe-signature'];
@@ -169,8 +213,10 @@ export const stripeWebhookHandler = async (req, res) => {
         book.rentedBy = book.rentedBy || []; if (userId) book.rentedBy.push(userId);
         book.rentedCount = (book.rentedCount || 0) + 1; if ((book.rentedCount || 0) >= (book.totalCopies || 1)) { book.status = 'rented'; book.available = false; }
         await book.save(); if (userId) await User.findByIdAndUpdate(userId, { $push: { rentedBooks: book._id } });
-        if (pending) { pending.status = 'paid'; pending.reference = session.payment_intent || pending.reference; pending.stripeResponse = session; await pending.save(); }
-        rental.days = pending?.periodDays || parseInt(session.metadata?.periodDays || '1') || 1; rental.totalPrice = (session.amount_total || 0) / 100; await rental.save();
+        if (pending) { pending.status = 'paid'; pending.reference = session.payment_intent || pending.reference; pending.stripeResponse = session; 
+        await pending.save(); }
+        rental.days = pending?.periodDays || parseInt(session.metadata?.periodDays || '1') || 1; rental.totalPrice = (session.amount_total || 0) / 100; 
+        await rental.save();
         try { const owner = await User.findById(book.owner); if (owner) { owner.wallet = (owner.wallet || 0) + (rental.totalPrice || 0); await owner.save(); } } catch (wErr) { console.error('Failed to credit owner wallet after stripe webhook:', wErr); }
         return res.status(200).send('processed');
       } catch (procErr) {
