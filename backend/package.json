@@ -1,5 +1,8 @@
 {
   "type": "module",
+  "scripts": {
+     "start": "node server.js"
+  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.922.0",
     "@supabase/supabase-js": "^2.78.0",
@@ -14,4 +17,5 @@
     "node-fetch": "^3.3.2",
     "stripe": "^11.18.0"
   }
+
 }
