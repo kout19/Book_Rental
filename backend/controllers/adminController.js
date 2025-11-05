@@ -1,5 +1,4 @@
 import User from '../models/User.js';
-
 export const getUsers = async (req, res) => {
     try{
         // Populate ownedBooks so admin can see which owner uploaded which books
@@ -103,9 +102,11 @@ export const approveOwner = async (req, res) => {
 export const getApprovalRequests = async (req, res) => {
     try {
         const Book = (await import('../models/BookSchema.js')).default;
+        const Contact = (await import('../models/Contact.js')).default;
         const userRequests = await User.find({ approvalRequested: true }).select('-password');
         const bookRequests = await Book.find({ approvalRequested: true }).populate('owner', 'name email');
-        res.status(200).json({ users: userRequests, books: bookRequests });
+        const contactRequests = await Contact.find({ status: 'pending' }).select('name email message status');
+        res.status(200).json({ users: userRequests, books: bookRequests, contacts: contactRequests });
     } catch (error) {
         console.error('Error fetching approval requests:', error);
         res.status(500).json({ message: 'Server error' });
@@ -138,3 +139,15 @@ export const approveBooksBulk = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+export const markContactAsSeen = async(req, res) =>{
+    try {
+    const { id } = req.params;
+    const Contact = (await import('../models/Contact.js')).default;
+    const updated = await Contact.findByIdAndUpdate(id, { status: 'seen' }, { new: true });
+    if (!updated) return res.status(404).json({ message: 'Message not found' });
+    res.status(200).json({ message: 'Marked as seen' });
+  } catch (error) {
+    console.error('Error marking contact as seen:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}

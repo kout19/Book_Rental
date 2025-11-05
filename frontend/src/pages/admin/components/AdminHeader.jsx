@@ -7,6 +7,8 @@ import API from '../../../api';
 
 const AdminHeader = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedContact, setSelectedContact] =useState(null);
+  const [showMessageModal, setShowMessageModal] = useState(false);  
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [pendingCount, setPendingCount] = useState(0);
@@ -27,7 +29,8 @@ const AdminHeader = () => {
       const { data } = await API.get('/api/admin/approval-requests');
       const u = Array.isArray(data.users) ? data.users.length : 0;
       const b = Array.isArray(data.books) ? data.books.length : 0;
-      setPendingCount(u + b);
+      const c= Array.isArray(data.contacts) ? data.contacts.length : 0;
+      setPendingCount(u + b +c);
     } catch (err) {
       // silently ignore failures (may be unauthenticated during some dev flows)
       console.debug('fetchPending failed', err);
@@ -39,9 +42,10 @@ const AdminHeader = () => {
       const { data } = await API.get('/api/admin/approval-requests');
       const users = Array.isArray(data.users) ? data.users.map(u => ({ type: 'user', id: u._id, title: u.name || u.email, subtitle: u.email })) : [];
       const books = Array.isArray(data.books) ? data.books.map(b => ({ type: 'book', id: b._id, title: b.title, subtitle: b.owner?.name || '' })) : [];
-      const combined = [...users, ...books];
+      const contacts = Array.isArray(data.contacts) ? data.contacts.map(c => ({ type: 'contact', id: c._id, title: c.name, subtitle: c.email, message: c.message })) : [];
+      const combined = [...users, ...books, ...contacts];
       setPendingItems(combined.slice(0, 6));
-      const total = (users.length + books.length) || 0;
+      const total = (users.length + books.length + contacts.length) || 0;
       setPendingCount(total);
     } catch (err) {
       console.debug('fetchPendingDetails failed', err);
@@ -76,7 +80,8 @@ const AdminHeader = () => {
       <div className="flex items-center space-x-4 relative">
         {/* Notification Icon */}
         <div className="relative" ref={panelRef}>
-          <button className="relative" onClick={async () => { setShowNotifications(!showNotifications); if (!showNotifications) await fetchPendingDetails(); }} aria-label="Approval requests">
+          <button className="relative" onClick={async () => { setShowNotifications(!showNotifications); 
+            if (!showNotifications) await fetchPendingDetails(); }} aria-label="Approval requests">
             <BellIcon className="w-6 h-6 text-gray-700" />
             {pendingCount > 0 ? (
               <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
@@ -94,18 +99,49 @@ const AdminHeader = () => {
               <div className="max-h-60 overflow-auto">
                 {pendingItems.length === 0 ? (
                   <div className="px-3 py-2 text-sm text-gray-600">No recent requests</div>
-                ) : (
-                  pendingItems.map((it) => (
-                    <button key={it.type + it.id} onClick={() => { setShowNotifications(false); navigate('/admin/approval-requests'); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 border-t first:border-t-0">
-                      <div className="text-sm font-semibold">{it.type === 'user' ? 'Owner request' : 'Book request'} — {it.title}</div>
+                ) :
+                 (
+                 pendingItems.map((it) => (
+                    <button
+                      key={it.type + it.id}
+                      onClick={async () => {
+                        setShowNotifications(false);
+
+                        if (it.type === 'contact') {
+                          try {
+                            setSelectedContact(it);
+                            setShowMessageModal(true);
+                            await API.patch(`/api/admin/contacts/${it.id}/seen`);
+                            await fetchPendingDetails(); // refresh notifications
+                          } catch (err) {
+                            console.error('Error marking message as seen:', err);
+                          }
+                        } else {
+                          setShowNotifications(false);
+                          navigate('/admin/approval-requests');
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 border-t first:border-t-0"
+                    >
+                      <div className="text-sm font-semibold">
+                        {it.type === 'user'
+                          ? 'Owner request'
+                          : it.type === 'book'
+                          ? 'Book request'
+                          : 'New message'} — {it.title}
+                      </div>
                       <div className="text-xs text-gray-500">{it.subtitle}</div>
                     </button>
                   ))
-                )}
+                  )
+                }
               </div>
               <div className="px-3 py-2 border-t flex justify-between items-center">
                 <div className="text-xs text-gray-600">{pendingCount} pending</div>
-                <button onClick={() => { setShowNotifications(false); navigate('/admin/approval-requests'); }} className="text-sm text-blue-600">View all</button>
+                <button onClick={() => { setShowNotifications(false); 
+                 navigate('/admin/approval-requests'); }} className="text-sm text-blue-600">
+                  View all
+                  </button>
               </div>
             </div>
           )}
@@ -155,6 +191,50 @@ const AdminHeader = () => {
           )}
         </div>
       </div>
+      {showMessageModal && selectedContact && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div className="bg-white w-96 rounded-lg shadow-lg p-5 relative">
+      <h2 className="text-lg font-semibold mb-2">Contact Message</h2>
+
+      <p className="text-sm mb-1">
+        <span className="font-semibold">Name:</span> {selectedContact.title}
+      </p>
+      <p className="text-sm mb-1">
+        <span className="font-semibold">Email:</span> {selectedContact.subtitle}
+      </p>
+
+      <p className="text-sm mt-2 mb-4 border-t pt-2">
+        <span className="font-semibold">Message:</span><br />
+        {selectedContact.message || 'No message provided.'}
+      </p>
+
+      <div className="flex justify-end space-x-2">
+        <button
+          className="px-3 py-1 text-sm rounded bg-gray-300 hover:bg-gray-400"
+          onClick={() => setShowMessageModal(false)}
+        >
+          Close
+        </button>
+        <button
+          className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+          onClick={async () => {
+            try {
+              await API.patch(`/api/admin/contacts/${selectedContact.id}/seen`);
+              await fetchPendingDetails(); // refresh notifications
+              setShowMessageModal(false);
+              setShowNotifications(false);
+            } catch (err) {
+              console.error('Error marking message as seen:', err);
+            }
+          }}
+        >
+          Mark as Seen
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </header>
   );
 };

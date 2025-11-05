@@ -194,6 +194,26 @@ export default function Login() {
           Sign in with Github
         </span>
         </button>
+              <Link
+          component={RouterLink}
+          to="/"
+          underline="none"
+          sx={{
+            display: 'inline-block',
+            mt: 3,
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            border: '1px solid',
+            borderColor: 'divider',
+            color: 'primary.main',
+            '&:hover': {
+              backgroundColor: 'action.hover',
+            },
+          }}
+        >
+          ← Back to Home
+        </Link>
     </Container>
     
   )

@@ -10,6 +10,7 @@ import {
     getApprovalRequests,
     approveUsersBulk,
     approveBooksBulk,
+    markContactAsSeen,
 } from '../controllers/adminController.js';
 import { adminOnly } from '../middleware/adminMiddleware.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -29,4 +30,5 @@ router.get('/approval-requests', getApprovalRequests);
 // Bulk approve endpoints
 router.put('/users/approve-bulk', approveUsersBulk);
 router.put('/books/approve-bulk', approveBooksBulk);
+router.patch('/contacts/:id/seen', markContactAsSeen);
 export default router;

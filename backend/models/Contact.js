@@ -13,6 +13,11 @@ message:{
     type:String,
     requird: true
 },
+status: {
+    type: String,
+    enum: ['pending', 'seen'],
+    default: 'pending'
+},
 createdAt:{
     type: Date,
     default:Date.now
