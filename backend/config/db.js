@@ -10,7 +10,7 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
-    console.log("connected to book_rental mongoDB")
+    console.log("MongoDB atlas connected to book_rental database");
   } catch (err) {
     console.log("Database error", err.message);
     }
