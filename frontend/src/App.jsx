@@ -23,7 +23,7 @@ import CheckoutSuccess from './pages/user/components/CheckoutSuccess'
 import OwnerDashboard from './pages/owner/OwnerDashboard'
 import OwnerBooks from './pages/owner/OwnerBooks'
 import Terms from './pages/Terms'
-import Privacy from './pages/privacy'
+import Privacy from './pages/Privacy'
 function App() {
   return (
 <div>
