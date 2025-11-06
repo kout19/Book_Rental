@@ -93,94 +93,97 @@ export default function OwnerBooks() {
         <TextField label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} sx={{ minWidth: 320 }} />
         <Button type="submit" variant="contained">{editing ? 'Save' : 'Create'}</Button>
         <label style={{ display: 'inline-block', marginLeft: 8 }}>
-  <input
-    type="file"
-    accept=".json,.txt,.pdf,.epub"
-    style={{ display: 'none' }}
-    onChange={async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+            <input
+              type="file"
+              accept=".json,.txt,.pdf,.epub"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
 
-      const maxSize = 50 * 1024 * 1024; // 50MB
-      if (file.size > maxSize) {
-        alert('File too large. Max 50MB.');
-        return;
-      }
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                  alert('File too large. Max 50MB.');
+                  return;
+                }
+                 const user = supabase.auth.user();
+                  if (!user) {
+                    showMessage('You must be logged in to upload files.', 'error');
+                    return;
+                  }
+                setUploading(true);
+                try {
+                  // If JSON file, try batch import
+                  if (file.name.endsWith('.json') || file.type === 'application/json') {
+                    const text = await file.text();
+                    let parsed;
+                    try { parsed = JSON.parse(text); } catch { parsed = null; }
+                    if (Array.isArray(parsed)) {
+                      for (const item of parsed) {
+                        const payload = {
+                          title: item.title || item.name,
+                          author: item.author || item.writer || '',
+                          description: item.description || item.summary || '',
+                          totalCopies: item.totalCopies || 1,
+                          publishedYear: item.publishedYear || item.year || new Date().getFullYear(),
+                          category: item.category || 'Imported',
+                          rentPrice: item.rentPrice || item.price || 0
+                        };
+                        await API.post('/api/books', payload);
+                      }
+                    showMessage('Book created successfully');
+                      fetchBooks();
+                    }
+                  } else {
+                    // For text/pdf/epub: upload directly to Supabase
+                    const safeFileName = file.name.normalize('NFD').replace(/[^a-zA-Z0-9._-]/g, '_');
+                    const filePath = `books/${Date.now()}_${safeFileName}`;
 
-      setUploading(true);
-      try {
-        // If JSON file, try batch import
-        if (file.name.endsWith('.json') || file.type === 'application/json') {
-          const text = await file.text();
-          let parsed;
-          try { parsed = JSON.parse(text); } catch { parsed = null; }
-          if (Array.isArray(parsed)) {
-            for (const item of parsed) {
-              const payload = {
-                title: item.title || item.name,
-                author: item.author || item.writer || '',
-                description: item.description || item.summary || '',
-                totalCopies: item.totalCopies || 1,
-                publishedYear: item.publishedYear || item.year || new Date().getFullYear(),
-                category: item.category || 'Imported',
-                rentPrice: item.rentPrice || item.price || 0
-              };
-              await API.post('/api/books', payload);
-            }
-           showMessage('Book created successfully');
-            fetchBooks();
-          }
-        } else {
-          // For text/pdf/epub: upload directly to Supabase
-          const safeFileName = file.name.normalize('NFD').replace(/[^a-zA-Z0-9._-]/g, '_');
-          const filePath = `books/${Date.now()}_${safeFileName}`;
+                    const { data: supaData, error: supaError } = await supabase.storage
+                      .from('books')
+                      .upload(filePath, file, {
+                        contentType: file.type,
+                        cacheControl: '3600',
+                        upsert: false,
+                      });
+                    if (supaError) throw supaError;
+                    {uploading && <Typography color="primary">Uploading...</Typography>}
+                    const { data: publicUrlData } = supabase.storage.from('books').getPublicUrl(filePath);
+                    const fileUrl = publicUrlData.publicUrl;
 
-          const { data: supaData, error: supaError } = await supabase.storage
-            .from('books')
-            .upload(filePath, file, {
-              contentType: file.type,
-              cacheControl: '3600',
-              upsert: false,
-            });
-          if (supaError) throw supaError;
-          {uploading && <Typography color="primary">Uploading...</Typography>}
-          const { data: publicUrlData } = supabase.storage.from('books').getPublicUrl(filePath);
-          const fileUrl = publicUrlData.publicUrl;
+                    // Send only metadata to backend
+                    const payload = {
+                      title: form.title || file.name,
+                      author: form.author || '',
+                      category: form.category || 'Uploaded',
+                      rentPrice: form.rentPrice || 0,
+                      description: form.description || '',
+                      fileUrl,
+                      fileName: file.name,
+                      mimeType: file.type,
+                      size: file.size
+                    };
+                  if(!form.title || !form.author) 
+                  {
+                    showMessage('Please enter title and author');
+                    return;
+                  }
+                    await API.post('/api/books/upload', payload);
+                    showMessage('Book created successfully');
+                    fetchBooks();
+                  }
+                } catch (err) {
+                  console.error('Upload failed', err);
+                  alert('Upload failed: ' + err.message);
+                }
+                setUploading(false);
+              }}
+            />
+            <Button variant="outlined" component="span" disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload'}
+            </Button>
 
-          // Send only metadata to backend
-          const payload = {
-            title: form.title || file.name,
-            author: form.author || '',
-            category: form.category || 'Uploaded',
-            rentPrice: form.rentPrice || 0,
-            description: form.description || '',
-            fileUrl,
-            fileName: file.name,
-            mimeType: file.type,
-            size: file.size
-          };
-         if(!form.title || !form.author) 
-         {
-           showMessage('Please enter title and author');
-           return;
-         }
-          await API.post('/api/books/upload', payload);
-          showMessage('Book created successfully');
-          fetchBooks();
-        }
-      } catch (err) {
-        console.error('Upload failed', err);
-        alert('Upload failed: ' + err.message);
-      }
-      setUploading(false);
-    }}
-  />
-  <Button variant="outlined" component="span" disabled={uploading}>
-    
-    Upload File
-  </Button>
-
-</label>
+          </label>
 
       </Box>
 
