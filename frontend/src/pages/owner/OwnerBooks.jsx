@@ -132,7 +132,8 @@ export default function OwnerBooks() {
           }
         } else {
           // For text/pdf/epub: upload directly to Supabase
-          const filePath = `books/${Date.now()}_${file.name}`;
+          const safeFileName = file.name.normalize('NFD').replace(/[^a-zA-Z0-9._-]/g, '_');
+          const filePath = `books/${Date.now()}_${safeFileName}`;
 
           const { data: supaData, error: supaError } = await supabase.storage
             .from('books')
@@ -141,12 +142,8 @@ export default function OwnerBooks() {
               cacheControl: '3600',
               upsert: false,
             });
-             {uploading && <Typography color="primary">Uploading...</Typography>}
-
           if (supaError) throw supaError;
-
-
-
+          {uploading && <Typography color="primary">Uploading...</Typography>}
           const { data: publicUrlData } = supabase.storage.from('books').getPublicUrl(filePath);
           const fileUrl = publicUrlData.publicUrl;
 
@@ -179,6 +176,7 @@ export default function OwnerBooks() {
     }}
   />
   <Button variant="outlined" component="span" disabled={uploading}>
+    
     Upload File
   </Button>
 
