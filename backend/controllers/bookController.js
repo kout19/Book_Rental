@@ -507,7 +507,7 @@ export const uploadBookFile = async (req, res) => {
     if (!fileName || !mimeType || !size || !data)
       return res.status(400).json({ message: "Invalid payload" });
 
-    const maxBytes = 10 * 1024 * 1024; // 10MB
+    const maxBytes = 50 * 1024 * 1024; //50MB
     if (size > maxBytes)
       return res.status(400).json({ message: "File too large. Max 10MB." });
 

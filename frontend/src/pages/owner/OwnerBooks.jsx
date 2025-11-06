@@ -80,7 +80,7 @@ export default function OwnerBooks() {
     <Container sx={{ mt: 4 }}>
       <Typography variant="h4" sx={{ mb: 2 }}>My Books</Typography>
       <Box component="form" sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }} onSubmit={(e)=>{e.preventDefault(); editing ? handleSave() : handleCreate();}}>
-  <TextField inputRef={titleRef} label="Title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        <TextField inputRef={titleRef} label="Title" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
         <TextField label="Author" required value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
         <TextField label="Price" required type="number" value={form.rentPrice} onChange={(e)=> setForm({...form, rentPrice: Number(e.target.value)})} sx={{ width: 120 }} />
         <TextField label="Copies" required type="number" value={form.totalCopies} onChange={(e) => setForm({ ...form, totalCopies: Number(e.target.value) })} sx={{ width: 120 }} />
@@ -92,6 +92,11 @@ export default function OwnerBooks() {
           <input type="file" accept=".json,.txt,.pdf,.epub" style={{ display: 'none' }} onChange={async (e)=>{
             const file = e.target.files?.[0];
             if(!file) return;
+            const maxSize = 50* 1024 * 1024;
+            if(file.size > maxSize){
+              alert('File too large');
+              return;
+            }
             setUploading(true);
             try{
               // If JSON file, try batch import
