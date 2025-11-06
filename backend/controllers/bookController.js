@@ -499,101 +499,23 @@ export const serveBookFile = async (req, res) => {
 // Upload an owner file (base64 payload) and extract metadata (AI optional)
 //supase
 export const uploadBookFile = async (req, res) => {
-   
-   try {
+  try {
     const ownerId = req.user.id;
-    const { fileName, mimeType, size, data, title, author, category, rentPrice, description } = req.body;
+    const { fileName, mimeType, size, title, author, category, rentPrice, description, fileUrl } = req.body;
 
-    if (!fileName || !mimeType || !size || !data)
-      return res.status(400).json({ message: "Invalid payload" });
+    if (!fileName || !mimeType || !size || !fileUrl)
+      return res.status(400).json({ message: "Invalid payload. Missing file metadata." });
 
-    const maxBytes = 50 * 1024 * 1024; //50MB
+    const maxBytes = 50 * 1024 * 1024; // 50MB
     if (size > maxBytes)
-      return res.status(400).json({ message: "File too large. Max 10MB." });
+      return res.status(400).json({ message: "File too large. Max 50MB." });
 
-    const buffer = Buffer.from(data, "base64");
-    const safeName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_")}`;
-    const filePath = `books/${safeName}`;
-
-    // ✅ Upload directly to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("books") // bucket name
-      .upload(filePath, buffer, {
-        contentType: mimeType,
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Supabase upload error:", uploadError.message);
-      return res.status(500).json({ message: "Upload to Supabase failed" });
-    }
-
-    // ✅ Get public URL
-    const { data: publicUrlData } = supabase.storage.from("books").getPublicUrl(filePath);
-    const fileUrl = publicUrlData.publicUrl;
-
-    // --- Metadata extraction (your original logic) ---
-    let extracted = {
-      title: title || null,
-      author: author || null,
-      description: description || null,
-      ISBN: null,
-      category: category || "Uploaded",
-    };
-
-    try {
-      if ((mimeType || "").startsWith("text")) {
-        const textSample = buffer.toString("utf8", 0, Math.min(buffer.length, 20000));
-
-        if (process.env.OPENAI_API_KEY) {
-          try {
-            const prompt = `Extract JSON with keys title, author, description, ISBN, category from the following text. If a key is absent, use null. Return only a JSON object.\n\nText:\n${textSample}`;
-            const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-              },
-              body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [{ role: "user", content: prompt }],
-                max_tokens: 300,
-              }),
-            });
-
-            const j = await resp.json();
-            const aiText = j?.choices?.[0]?.message?.content;
-            if (aiText) {
-              try {
-                const parsed = JSON.parse(aiText);
-                extracted = { ...extracted, ...parsed };
-              } catch {
-                console.debug("AI response not JSON, skipping parse");
-              }
-            }
-          } catch (aiErr) {
-            console.error("AI metadata extraction failed:", aiErr);
-          }
-        }
-
-        if (!extracted.title || !extracted.author) {
-          const lines = textSample.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-          if (!extracted.title && lines[0]) extracted.title = lines[0];
-          if (!extracted.author && lines[1]) extracted.author = lines[1];
-          if (!extracted.description) extracted.description = lines.slice(2).join("\n");
-        }
-      }
-    } catch (metaErr) {
-      console.error("Metadata extraction error", metaErr);
-    }
-
-    // ✅ Save Book record in MongoDB
+    // ✅ Save only metadata — since upload is done on frontend
     const book = await Book.create({
-      title: extracted.title || title || fileName,
-      author: extracted.author || author || "Unknown",
-      description: extracted.description || description || "",
-      category: extracted.category || category || "Uploaded",
+      title: title || fileName,
+      author: author || "Unknown",
+      description: description || "",
+      category: category || "Uploaded",
       owner: ownerId,
       totalCopies: 1,
       rentPrice: rentPrice || 0,
@@ -601,17 +523,18 @@ export const uploadBookFile = async (req, res) => {
       approved: false,
       approvalRequested: true,
       status: "available",
-      filePath: fileUrl, // ✅ Supabase URL
+      filePath: fileUrl, // ✅ Supabase public URL from frontend
       fileMimeType: mimeType,
       fileSize: size,
     });
 
     await User.findByIdAndUpdate(ownerId, { $push: { ownedBooks: book._id } });
 
-    res.status(201).json({ message: "Book uploaded successfully", book });
+    res.status(201).json({ message: "Book metadata saved successfully", book });
   } catch (err) {
     console.error("uploadBookFile error", err);
     res.status(500).json({ message: "Server error", details: err.message });
   }
 };
+
 
