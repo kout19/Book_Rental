@@ -1,12 +1,12 @@
-import React,{useEffect, useState} from "react";
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  IconButton, 
-  Menu, 
-  MenuItem, 
+import React, { useEffect, useState } from "react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
   Avatar,
   Box,
   Divider,
@@ -16,71 +16,78 @@ import {
   ListItemIcon,
   ListItemText,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Fade
 } from "@mui/material";
-import { AccountCircle, Logout, Person, Menu as MenuIcon, LibraryBooks, MenuBook } from "@mui/icons-material";
-import { Link, useNavigate, Outlet} from "react-router-dom";
+import {
+  AccountCircle,
+  Logout,
+  Person,
+  Menu as MenuIcon,
+  LibraryBooks,
+  MenuBook
+} from "@mui/icons-material";
+import { Link, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { auth } from "../../../firebase/firebase";
 import { onAuthStateChanged, reload, signOut } from "firebase/auth";
 import { useAuth } from "../../../context/AuthContext";
+
 const RenterNavbar = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const location = useLocation(); // ✅ to detect route changes
   const { logout, user } = useAuth();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const [anchorEl, setAnchorEl] = useState(null);
-    const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-    const [firebaseUser, setFirebaseUser] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [showWelcome, setShowWelcome] = useState(true); // ✅ control fade state
 
-    useEffect(() => {
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            await reload(user);
-            setFirebaseUser(user);
-            if (!user.emailVerified) {
-              alert("You must verify your email to access the dashboard.");
-              navigate("/login");
-            }
-          } else {
-            setFirebaseUser(null);
-            navigate("/login");
-          }
-        });
-      }, [navigate]);
-
-    const handleProfileMenuOpen = (event) => {
-      setAnchorEl(event.currentTarget);
-    };
-
-    const handleProfileMenuClose = () => {
-      setAnchorEl(null);
-    };
-
-    const handleLogout = async () => {
-      try {
-        await signOut(auth);
-        logout();
+  useEffect(() => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await reload(user);
+        setFirebaseUser(user);
+        if (!user.emailVerified) {
+          alert("You must verify your email to access the dashboard.");
+          navigate("/login");
+        }
+      } else {
+        setFirebaseUser(null);
         navigate("/login");
-      } catch (error) {
-        console.error("Logout error:", error);
       }
-      handleProfileMenuClose();
-      setMobileDrawerOpen(false);
-    };
+    });
+  }, [navigate]);
 
-    const handleMobileDrawerToggle = () => {
-      setMobileDrawerOpen(!mobileDrawerOpen);
-    };
+  // ✅ Hide welcome page on non-home routes
+  useEffect(() => {
+    const isHome = location.pathname === "/user/dashboard" || location.pathname === "/user/dashboard/";
+    setShowWelcome(isHome);
+  }, [location.pathname]);
 
-    const handleMobileDrawerClose = () => {
-      setMobileDrawerOpen(false);
-    };
-    
+  const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleProfileMenuClose = () => setAnchorEl(null);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+    handleProfileMenuClose();
+    setMobileDrawerOpen(false);
+  };
+
+  const handleMobileDrawerToggle = () => setMobileDrawerOpen(!mobileDrawerOpen);
+  const handleMobileDrawerClose = () => setMobileDrawerOpen(false);
+
   return (
     <>
+      {/* NAVBAR */}
       <AppBar position="static" sx={{ backgroundColor: "#1E293B" }}>
         <Toolbar>
-          {/* Mobile Menu Button */}
           {isMobile && (
             <IconButton
               color="inherit"
@@ -92,39 +99,44 @@ const RenterNavbar = () => {
               <MenuIcon />
             </IconButton>
           )}
-          
+
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             📚 Book Rental
           </Typography>
-          
-          {/* Desktop Navigation */}
+
           {!isMobile && (
             <>
-              {user?.role !== 'owner' && (
+              {user?.role !== "owner" && (
                 <>
-                  <Button color="inherit" component={Link} to="/user/browse-books">Browse Books</Button>
-                  <Button color="inherit" component={Link} to="/user/my-rentals">My Rentals</Button>
+                  <Button color="inherit" component={Link} to="/user/browse-books">
+                    Browse Books
+                  </Button>
+                  <Button color="inherit" component={Link} to="/user/my-rentals">
+                    My Rentals
+                  </Button>
                 </>
               )}
             </>
           )}
-          
+
           {/* Profile Section */}
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: isMobile ? 1 : 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", ml: isMobile ? 1 : 2 }}>
             {firebaseUser && !isMobile && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                <Avatar 
-                  sx={{ width: 32, height: 32, mr: 1, bgcolor: 'primary.light' }}
+              <Box sx={{ display: "flex", alignItems: "center", mr: 2 }}>
+                <Avatar
+                  sx={{ width: 32, height: 32, mr: 1, bgcolor: "primary.light" }}
                   src={firebaseUser.photoURL}
                 >
-                  {firebaseUser.displayName ? firebaseUser.displayName.charAt(0).toUpperCase() : firebaseUser.email?.charAt(0).toUpperCase()}
+                  {firebaseUser.displayName
+                    ? firebaseUser.displayName.charAt(0).toUpperCase()
+                    : firebaseUser.email?.charAt(0).toUpperCase()}
                 </Avatar>
-                <Typography variant="body2" sx={{ color: 'white' }}>
+                <Typography variant="body2" sx={{ color: "white" }}>
                   {firebaseUser.displayName || firebaseUser.email}
                 </Typography>
               </Box>
             )}
-            
+
             <IconButton
               size="large"
               edge="end"
@@ -136,19 +148,13 @@ const RenterNavbar = () => {
             >
               <AccountCircle />
             </IconButton>
-            
+
             <Menu
               id="profile-menu"
               anchorEl={anchorEl}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
-              }}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
               keepMounted
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
               open={Boolean(anchorEl)}
               onClose={handleProfileMenuClose}
             >
@@ -166,33 +172,41 @@ const RenterNavbar = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Drawer */}
+      {/* MOBILE DRAWER */}
       <Drawer
         variant="temporary"
         anchor="left"
         open={mobileDrawerOpen}
         onClose={handleMobileDrawerClose}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
-        }}
+        ModalProps={{ keepMounted: true }}
         sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 280 },
+          display: { xs: "block", md: "none" },
+          "& .MuiDrawer-paper": { boxSizing: "border-box", width: 280 }
         }}
       >
         <Box sx={{ p: 2 }}>
-          {/* User Info in Drawer */}
           {firebaseUser && (
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Avatar 
-                sx={{ width: 48, height: 48, mr: 2, bgcolor: 'primary.main' }}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: 3,
+                p: 2,
+                bgcolor: "grey.100",
+                borderRadius: 1
+              }}
+            >
+              <Avatar
+                sx={{ width: 48, height: 48, mr: 2, bgcolor: "primary.main" }}
                 src={firebaseUser.photoURL}
               >
-                {firebaseUser.displayName ? firebaseUser.displayName.charAt(0).toUpperCase() : firebaseUser.email?.charAt(0).toUpperCase()}
+                {firebaseUser.displayName
+                  ? firebaseUser.displayName.charAt(0).toUpperCase()
+                  : firebaseUser.email?.charAt(0).toUpperCase()}
               </Avatar>
               <Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {firebaseUser.displayName || 'User'}
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                  {firebaseUser.displayName || "User"}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {firebaseUser.email}
@@ -200,10 +214,9 @@ const RenterNavbar = () => {
               </Box>
             </Box>
           )}
-          
-          {/* Navigation Links */}
+
           <List>
-            {user?.role !== 'owner' && (
+            {user?.role !== "owner" && (
               <>
                 <ListItemButton component={Link} to="/user/browse-books" onClick={handleMobileDrawerClose}>
                   <ListItemIcon>
@@ -211,7 +224,7 @@ const RenterNavbar = () => {
                   </ListItemIcon>
                   <ListItemText primary="Browse Books" />
                 </ListItemButton>
-                
+
                 <ListItemButton component={Link} to="/user/my-rentals" onClick={handleMobileDrawerClose}>
                   <ListItemIcon>
                     <LibraryBooks />
@@ -220,16 +233,16 @@ const RenterNavbar = () => {
                 </ListItemButton>
               </>
             )}
-            
+
             <ListItemButton component={Link} to="/user/profile" onClick={handleMobileDrawerClose}>
               <ListItemIcon>
                 <Person />
               </ListItemIcon>
               <ListItemText primary="Profile" />
             </ListItemButton>
-            
+
             <Divider sx={{ my: 1 }} />
-            
+
             <ListItemButton onClick={handleLogout}>
               <ListItemIcon>
                 <Logout />
@@ -241,6 +254,34 @@ const RenterNavbar = () => {
       </Drawer>
 
       <Outlet />
+
+      {/* 🎉 Animated Welcome Section */}
+      <Fade in={showWelcome} timeout={800} unmountOnExit>
+        <Box
+          sx={{
+            background: "linear-gradient(135deg, #1E293B 0%, #334155 100%)",
+            color: "white",
+            py: 10,
+            textAlign: "center",
+            transition: "all 0.6s ease-in-out"
+          }}
+        >
+          <Typography variant="h4" sx={{ fontWeight: "bold", mb: 2 }}>
+            👋 Welcome, {firebaseUser?.displayName || firebaseUser?.email?.split("@")[0]}!
+          </Typography>
+          <Typography variant="h6" sx={{ mb: 4, color: "#E2E8F0" }}>
+            Discover your next favorite read and manage your rentals easily.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+            <Button variant="contained" color="secondary" component={Link} to="/user/browse-books">
+              Browse Books
+            </Button>
+            <Button variant="outlined" color="inherit" component={Link} to="/user/my-rentals">
+              My Rentals
+            </Button>
+          </Box>
+        </Box>
+      </Fade>
     </>
   );
 };

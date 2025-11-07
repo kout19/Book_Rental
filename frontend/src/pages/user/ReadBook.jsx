@@ -60,40 +60,40 @@ export default function ReadBook() {
     };
   }, [fileUrl]);
 
-  const handleSaveOffline = () => {
-    if (!rentalId) return alert('No rental id, cannot save');
-    try {
-      if (fileUrl) {
-        // try to fetch blob and store as base64 (may be large)
-        fetch(fileUrl).then((r) => r.blob()).then(async (blob) => {
-          const arr = await blob.arrayBuffer();
-          let binary = '';
-          const bytes = new Uint8Array(arr);
-          const chunkSize = 0x8000;
-          for (let i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
-          }
-          const b64 = btoa(binary);
-          const stored = { title, fileBase64: b64, fileType, savedAt: Date.now() };
-          localStorage.setItem(`offline_rental_${rentalId}`, JSON.stringify(stored));
-          alert('Saved file for offline reading (may be large)');
-        }).catch((err) => { console.error('Failed to fetch file for offline save', err); alert('Failed to save offline'); });
-      } else {
-        localStorage.setItem(`offline_rental_${rentalId}`, JSON.stringify({ title, content, savedAt: Date.now() }));
-        alert('Saved for offline reading');
-      }
-    } catch (err) {
-      console.error('Save offline failed', err);
-      alert('Failed to save offline');
-    }
-  };
+  // const handleSaveOffline = () => {
+  //   if (!rentalId) return alert('No rental id, cannot save');
+  //   try {
+  //     if (fileUrl) {
+  //       // try to fetch blob and store as base64 (may be large)
+  //       fetch(fileUrl).then((r) => r.blob()).then(async (blob) => {
+  //         const arr = await blob.arrayBuffer();
+  //         let binary = '';
+  //         const bytes = new Uint8Array(arr);
+  //         const chunkSize = 0x8000;
+  //         for (let i = 0; i < bytes.length; i += chunkSize) {
+  //           binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+  //         }
+  //         const b64 = btoa(binary);
+  //         const stored = { title, fileBase64: b64, fileType, savedAt: Date.now() };
+  //         localStorage.setItem(`offline_rental_${rentalId}`, JSON.stringify(stored));
+  //         alert('Saved file for offline reading (may be large)');
+  //       }).catch((err) => { console.error('Failed to fetch file for offline save', err); alert('Failed to save offline'); });
+  //     } else {
+  //       localStorage.setItem(`offline_rental_${rentalId}`, JSON.stringify({ title, content, savedAt: Date.now() }));
+  //       alert('Saved for offline reading');
+  //     }
+  //   } catch (err) {
+  //     console.error('Save offline failed', err);
+  //     alert('Failed to save offline');
+  //   }
+  // };
 
   return (
     <Container sx={{ mt: 4 }}>
       <Typography variant="h5" sx={{ mb: 2 }}>{title}</Typography>
       <Box sx={{ mb: 2 }}>
         <Button variant="outlined" onClick={() => navigate(-1)}>Back</Button>
-        <Button variant="contained" sx={{ ml: 2 }} onClick={handleSaveOffline}>Save Offline</Button>
+        {/* <Button variant="contained" sx={{ ml: 2 }} onClick={handleSaveOffline}>Save Offline</Button> */}
       </Box>
       {loading ? (
         <Typography>Loading...</Typography>
