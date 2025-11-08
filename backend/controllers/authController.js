@@ -104,7 +104,7 @@ export const whoami = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-const loginConroller =async(req, res)=>{
+export const loginController =async(req, res)=>{
  try{
     const {idToken}=req.body;
     const decoded = await admin.auth().verifyIdToken(idToken);
@@ -123,4 +123,4 @@ const loginConroller =async(req, res)=>{
 
 
 // include whoami in default export as well for compatibility
-export default { syncUser, whoami, loginConroller };
+export default { syncUser, whoami};
