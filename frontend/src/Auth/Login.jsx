@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema } from '../utils/validationSchema'
 import { useState } from 'react'
 import { useNavigate, Link as RouterLink } from 'react-router-dom'
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup ,signOut} from 'firebase/auth';
 import { auth,db, googleProvider, githubProvider } from '../firebase/firebase';
 import { useAuth } from '../context/AuthContext';
 import API from '../api';
@@ -23,7 +23,16 @@ import { getDoc, doc} from 'firebase/firestore'
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  // social login handlers (use login from context)
+  const [serverError, setServerError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  })
+    // social login handlers (use login from context)
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -72,60 +81,80 @@ export default function Login() {
       setServerError('Social login failed.');
     }
   };
-  const [serverError, setServerError] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(loginSchema),
-  })
 
-  const onSubmit = async (data) => {
-    setLoading(true)
-    setServerError(null)
+const onSubmit = async (data) => {
+  setLoading(true);
+  setServerError(null);
 
-    try {
-      const res = await signInWithEmailAndPassword(auth, data.email, data.password  )
-      const user = res.user;
-      console.log("user",user);
-      if( !user.emailVerified){
-        alert("Please verify your email before logging in.")
-        return;
-      }
-      // get Firebase ID token and user profile, then login
-      const token = await user.getIdToken();
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        console.log('user Data:', userData);
-        // Persist token and merged user info (temporarily store firebase token)
-        login(token, { uid: user.uid, ...userData });
-        // Sync with backend to obtain server JWT and use that for protected endpoints
-        try {
-          const resp = await API.post('/api/auth/sync', { name: userData.name, email: userData.email, role: userData.role }, { headers: { Authorization: `Bearer ${token}` } });
-          const serverToken = resp.data?.token;
-          if (serverToken) {
-            // replace stored token with server JWT
-            login(serverToken, { uid: user.uid, ...userData });
-          }
-        } catch (syncErr) {
-          console.warn('Sync to backend failed:', syncErr?.response?.data || syncErr.message || syncErr);
-        }
-        if (userData.role === 'admin') navigate('/admin/dashboard')
-        else if (userData.role === 'owner') navigate('/owner/dashboard')
-        else navigate('/user/dashboard')
-      } else {
-        setServerError('No user data found. Please contact support.')
-      }
-    } catch (err) {
-      console.log(err.code, err.message)
-      setServerError('Invalid email or password.')
-    } finally {
-      setLoading(false)
+  try {
+    // 🔹 Step 1: Firebase login
+    const res = await signInWithEmailAndPassword(auth, data.email, data.password);
+    const user = res.user;
+    if (!user.emailVerified) {
+      alert("Please verify your email before logging in.");
+      setLoading(false);
+      return;
     }
+
+    // 🔹 Step 2: Get Firebase ID token
+    const token = await user.getIdToken();
+
+    // 🔹 Step 3: Fetch user profile from Firestore
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (!userDoc.exists()) {
+      setServerError("No user profile found in Firestore. Please contact support.");
+      setLoading(false);
+      return;
+    }
+
+    const userData = userDoc.data();
+
+    // 🔹 Step 4: Sync with backend (optional, keeps MongoDB up to date)
+    try {
+      const syncResp = await API.post(
+        "/api/auth/sync",
+        { name: userData.name, email: userData.email, role: userData.role },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const serverToken = syncResp.data?.token;
+      if (serverToken) {
+        // Replace Firebase token with backend JWT
+        login(serverToken, { uid: user.uid, ...userData });
+      } else {
+        login(token, { uid: user.uid, ...userData });
+      }
+    } catch (syncErr) {
+      console.warn("Sync to backend failed:", syncErr?.response?.data || syncErr.message || syncErr);
+      // Still continue with login, but log warning
+      login(token, { uid: user.uid, ...userData });
+    }
+
+    // 🔹 Step 5: Verify MongoDB user status (disabled, deleted, etc.)
+    try {
+      const verifyRes = await API.post("/api/auth/login", { idToken: token });
+      const { role } = verifyRes.data;
+
+      // 🔹 Step 6: Redirect based on MongoDB role
+      if (role === "admin") navigate("/admin/dashboard");
+      else if (role === "owner") navigate("/owner/dashboard");
+      else navigate("/user/dashboard");
+    } catch (verifyErr) {
+      console.error("Backend verification failed:", verifyErr);
+      const msg =
+        verifyErr?.response?.data?.message ||
+        "Account could not be verified. Please contact support.";
+      setServerError(msg);
+      await signOut(auth);
+    }
+  } catch (err) {
+    console.error(err.code, err.message);
+    setServerError("Invalid email or password.");
+  } finally {
+    setLoading(false);
   }
+};
+
 
   return (
     <Container maxWidth="sm" sx={{ mt: 8 }}>

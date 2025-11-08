@@ -104,6 +104,23 @@ export const whoami = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+const loginConroller =async(req, res)=>{
+ try{
+    const {idToken}=req.body;
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    const user= await User.findOne({firebaseUID:decoded.uid});
+    if(!user)
+      return res.status(404).json({message:"User not found"});
+    if(user.status==="disabled"){
+      return res.status(403).json({message:"Account disabled. Contact admin."});
+    }
+      return res.status(200).json({success: true, role: user.role, message:"Login successful", user});
+ }catch(error){
+  console.log(error)
+  res.status(500).json({message:"Login Failed ", error: error.message })
+ }
+}
+
 
 // include whoami in default export as well for compatibility
-export default { syncUser, whoami };
+export default { syncUser, whoami, loginConroller };

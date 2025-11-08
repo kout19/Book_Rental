@@ -2,7 +2,7 @@ import {
   Typography,
   Link,
 } from '@mui/material'
-import { useForm } from 'react-hook-form';
+import { set, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema } from '../utils/validationSchema';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -27,6 +27,7 @@ const db = getFirestore(app);
 export default function Register() {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -39,6 +40,7 @@ export default function Register() {
   const handleRegister = async (data) => {
     console.log("Form data sumbited", data);
     try {
+      setLoading(true);
       const res = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = res.user;
 
@@ -69,7 +71,9 @@ export default function Register() {
 
       alert('Registration successful! Check your email (including spam folder) to verify your account.');
       navigate('/verify-email');
+      set
     } catch (err) {
+      setLoading(false);
       console.error('Registration error:', err);
       setError('Failed to register. Try again.');
     }
@@ -112,8 +116,8 @@ export default function Register() {
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
         {/* Submit */}
-        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
-          Sign Up
+        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded" disabled={loading}>
+         {loading ? 'Registering...' : 'Sign Up'} 
         </button>
 
         <Typography variant="body2" align="center" sx={{ mt: 2 }}>
